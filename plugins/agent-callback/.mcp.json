@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "agent-callback": {
+      "command": "./bin/win-x64/agent-callback.exe",
+      "args": ["mcp"],
+      "cwd": "."
+    }
+  }
+}

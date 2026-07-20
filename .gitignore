@@ -1,0 +1,10 @@
+artifacts/
+data/
+logs/
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+TestResults/
+*.trx

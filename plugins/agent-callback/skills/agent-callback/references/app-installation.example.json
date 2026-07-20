@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "installId": "generated-during-install",
+  "displayName": "Agent Callback",
+  "version": "0.1.0-alpha.1",
+  "executablePath": "C:\\Users\\you\\AppData\\Local\\Programs\\AgentCallback\\agent-callback.exe",
+  "installDirectory": "C:\\Users\\you\\AppData\\Local\\Programs\\AgentCallback",
+  "dataDirectory": "C:\\Users\\you\\AppData\\Local\\AgentCallback",
+  "dataOwned": true,
+  "skillDirectory": "C:\\Users\\you\\.codex\\skills\\agent-callback",
+  "startupRegistryKey": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+  "startupRegistryValue": "AgentCallback",
+  "uninstallRegistryKey": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AgentCallback",
+  "uninstallCommand": "generated-during-install",
+  "installedProviders": ["codex"],
+  "dataRemovalPolicy": "Preserved by default; explicit approval is required to remove callback data."
+}

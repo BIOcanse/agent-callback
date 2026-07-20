@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Callback"
+  short_description: "Resume agent tasks after local work finishes"
+  default_prompt: "Use $agent-callback to resume this task when the long-running process finishes."

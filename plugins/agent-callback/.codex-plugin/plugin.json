@@ -1,0 +1,31 @@
+{
+  "name": "agent-callback",
+  "version": "0.1.0-alpha.1",
+  "description": "Register durable one-shot callbacks that resume an existing agent conversation after local work finishes.",
+  "author": {
+    "name": "Agent Callback Contributors"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "callback",
+    "agents",
+    "automation",
+    "long-running process",
+    "developer tools"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Agent Callback",
+    "shortDescription": "Resume an agent task after local work finishes",
+    "longDescription": "Register one stored continuation against a running process or an explicit local event. A per-user Host observes completion and returns the continuation to the same conversation through an installed provider adapter. The first release includes an experimental Codex Desktop adapter.",
+    "developerName": "Agent Callback Contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": "Use $agent-callback to resume this task when my long-running local process finishes."
+  }
+}
