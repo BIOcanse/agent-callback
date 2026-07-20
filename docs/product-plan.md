@@ -68,7 +68,7 @@ Codex 官方当前把 Plugin 作为可安装和发布单元，Plugin 可以同�
 - 远程公网 Webhook 或默认监听 TCP 端口；
 - 自动启动新的后续回调链；新长进程必须显式登记新的回调；
 - 完整 Web 控制台或移动端；首版用 CLI、MCP tools 和本地诊断完成管理；
-- 自动判断构建成功。进程消失只代表完成事件被观察到，成功与否必须看退出码、状态文件和任务验证。
+- 自动判断构建成功。轮询外部进程只能可靠观察“进程已结束”，不能恢复其退出码；成功与否必须由显式 event 报告、状态文件和任务验证确定。
 
 ## 回调契约
 
@@ -103,7 +103,7 @@ Codex 官方当前把 Plugin 作为可安装和发布单元，Plugin 可以同�
 
 `callbackId` 由 App 生成；用户可另设可读标签，不能用标签充当存储路径或幂等键。
 
-### 触发对象
+### 显式 event 触发对象
 
 通用程序触发只允许补充有界结果：
 
@@ -117,6 +117,8 @@ Codex 官方当前把 Plugin 作为可安装和发布单元，Plugin 可以同�
 ```
 
 `reportedOutcome` 必须在 UI 和 Skill 中显示为“程序报告的结果”，不能冒充 App 或 Codex 已验证的结果。摘要设长度上限，证据引用必须符合登记时的路径策略。
+
+Process source 不接受触发负载。Host 只在已固定的 PID 与创建时间对应的进程结束后把 `reportedOutcome` 记录为 `unknown`、`exitCode` 留空；需要可靠结果或退出码时，调用方必须改用 event source 或写入已登记的证据文件。
 
 ### 投递信封
 
@@ -185,10 +187,10 @@ flowchart LR
 - `agent-callback mcp`：stdio MCP server，连接本地 Host；
 - `agent-callback register process|event`：程序化登记；
 - `agent-callback trigger|get|list|cancel|acknowledge`：生命周期管理；
-- `agent-callback provider status`：只读兼容性诊断；
-- `agent-callback host install|start|stop|status`：显式 Host 生命周期。
+- `agent-callback provider status`：只读运行时探测；
+- `agent-callback host start|stop|status|enable-startup|disable-startup`：显式 Host 生命周期。
 
-Host 与 CLI/MCP 之间默认使用当前用户专属的本地 named pipe，不开放 TCP。Windows 安装包登记一个无需管理员权限的每用户登录启动项；便携模式必须明确提示，只有 Host 存活时才能保证观察实时退出码。
+Host 与 CLI/MCP 之间默认使用当前用户专属的本地 named pipe，不开放 TCP。Windows 安装包登记一个无需管理员权限的每用户登录启动项；便携模式必须明确提示，只有 Host 存活时才能持续观察外部进程是否结束。
 
 MCP 进程不是耐久 Host。Codex 结束任务或重启后 MCP 子进程可能退出，因此它只做薄适配和 Host 健康检查，不能持有 watcher。
 

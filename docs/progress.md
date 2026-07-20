@@ -2,7 +2,7 @@
 
 ## Current State
 
-Provider-neutral `0.1.0-alpha.1` is public. `0.1.0-alpha.2` is implemented and installed locally with direct runtime probing; its end-to-end callback and public release remain in progress.
+Provider-neutral `0.1.0-alpha.2` is published and installed locally. Codex compatibility now uses direct runtime probing with no package-version rejection.
 
 ## Completed
 
@@ -28,15 +28,14 @@ Provider-neutral `0.1.0-alpha.1` is public. `0.1.0-alpha.2` is implemented and i
 - Verified install, upgrade with stable ownership ID, default uninstall with data preservation, full uninstall with explicit data removal, and final reinstall.
 - Passed the final installed-package callback gate through the provider registry; the installed Skill resolved the App from its dynamic installation record, delivery attached to the existing task, and the callback was acknowledged.
 - Published the public repository at `https://github.com/BIOcanse/agent-callback` and prerelease `v0.1.0-alpha.1` with the Windows x64 ZIP and SHA-256 sidecar.
+- Rebuilt alpha.2 from commit `79b28d1`, upgraded the installed App and Skill while preserving their install ID and data, and verified the exact installed binary hash against the package.
+- Completed an alpha.2 process callback through the version-independent provider path: the process identity marker matched, the idle follow-up delivered in one attempt with no transport error, and the callback was acknowledged. The record correctly reported `unknown` outcome and no exit code because an external process watcher only observes termination.
+- Published and remotely verified prerelease `v0.1.0-alpha.2`; its tag points to `79b28d1` and the GitHub ZIP digest matches the local SHA-256 sidecar.
 
 ## Follow-up
 
 1. Add signing and broader provider/version compatibility in later releases.
 2. Re-test per-user login startup in a disposable Windows user profile before promoting beyond alpha.
-
-## In Progress
-
-- Verify the installed alpha.2 package with a real one-shot callback, then publish it.
 
 ## Decisions
 
