@@ -1,8 +1,8 @@
 # Agent Callback Progress
 
-## Current Goal
+## Current State
 
-Publish the provider-neutral `0.1.0-alpha.1` repository and Windows release package.
+Provider-neutral `0.1.0-alpha.1` is published as a public repository and Windows x64 prerelease.
 
 ## Completed
 
@@ -27,17 +27,12 @@ Publish the provider-neutral `0.1.0-alpha.1` repository and Windows release pack
 - Added per-user installer/uninstaller packaging, Windows startup and Installed Apps registry entries, generated Skill installation metadata, checksum verification, and ownership-checked optional data removal.
 - Verified install, upgrade with stable ownership ID, default uninstall with data preservation, full uninstall with explicit data removal, and final reinstall.
 - Passed the final installed-package callback gate through the provider registry; the installed Skill resolved the App from its dynamic installation record, delivery attached to the existing task, and the callback was acknowledged.
+- Published the public repository at `https://github.com/BIOcanse/agent-callback` and prerelease `v0.1.0-alpha.1` with the Windows x64 ZIP and SHA-256 sidecar.
 
-## In Progress
+## Follow-up
 
-- Complete final repository hygiene, package verification, and public GitHub release.
-
-## Next
-
-1. Create the public repository under the verified BIOcanse developer account.
-2. Publish `v0.1.0-alpha.1` with the self-contained Windows x64 ZIP and checksums.
-3. Add signing and broader provider/version compatibility in later releases.
-4. Re-test per-user login startup in a disposable Windows user profile before promoting beyond alpha.
+1. Add signing and broader provider/version compatibility in later releases.
+2. Re-test per-user login startup in a disposable Windows user profile before promoting beyond alpha.
 
 ## Decisions
 

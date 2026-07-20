@@ -12,7 +12,7 @@ This project is not affiliated with or endorsed by OpenAI or any agent vendor.
 
 ## Install
 
-Download `agent-callback-0.1.0-alpha.1-win-x64.zip` and its `.sha256` sidecar from GitHub Releases, verify the archive, extract it, and run:
+Download `agent-callback-0.1.0-alpha.1-win-x64.zip` and its `.sha256` sidecar from [GitHub Releases](https://github.com/BIOcanse/agent-callback/releases), verify the archive, extract it, and run:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
