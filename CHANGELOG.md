@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Reworked the English README around a plain-language, agent-first quick start, trigger comparison, and explicit process-result caveat.
+- Added an English visual walkthrough showing registration, unattended local work, and one-shot delivery back to the same conversation.
+
 ## 0.1.0-alpha.3 - 2026-07-20
 
 - Added an experimental OpenCode provider that uses the public loopback server API.

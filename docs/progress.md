@@ -36,6 +36,7 @@ Provider-neutral `0.1.0-alpha.3` is installed locally and has passed the OpenCod
 - Verified plugin `shell.env` injection exposes the exact provider and instance/session target without model inference.
 - Verified default uninstall removes the App, both Skill copies, the OpenCode plugin, startup value, and uninstall entry while preserving callback data and install ownership; reinstallation restored all assets with the same `installId`.
 - Tested Claude Code CLI `2.1.215` in a disposable session. `--resume` retained the session ID, but the account returned HTTP 403, and the CLI/Desktop ownership model still does not provide in-place callback delivery.
+- Reworked the public README into an agent-first English quick start and added a deterministic English demo graphic under `docs/assets`.
 
 ## Follow-up
 
