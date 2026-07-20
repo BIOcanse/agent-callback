@@ -6,13 +6,13 @@ Register a continuation before a local process or program finishes. The per-user
 
 ## Status
 
-The first public release is `0.1.0-alpha.1` for Windows x64. The core, storage, Host, CLI, MCP protocol, process/event triggers, installer, and Skill are provider-neutral. The bundled Codex Desktop provider is the first adapter and remains explicitly experimental.
+The current public release is `0.1.0-alpha.2` for Windows x64. The core, storage, Host, CLI, MCP protocol, process/event triggers, installer, and Skill are provider-neutral. The bundled Codex Desktop provider is the first adapter and remains explicitly experimental.
 
 This project is not affiliated with or endorsed by OpenAI or any agent vendor.
 
 ## Install
 
-Download `agent-callback-0.1.0-alpha.1-win-x64.zip` and its `.sha256` sidecar from [GitHub Releases](https://github.com/BIOcanse/agent-callback/releases), verify the archive, extract it, and run:
+Download `agent-callback-0.1.0-alpha.2-win-x64.zip` and its `.sha256` sidecar from [GitHub Releases](https://github.com/BIOcanse/agent-callback/releases), verify the archive, extract it, and run:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
@@ -46,9 +46,9 @@ Data removal is ownership-checked, path-bounded, and never implied by a normal u
 
 | Provider | Status | Delivery |
 | --- | --- | --- |
-| Codex Desktop on Windows | Experimental | Active-turn steer or idle follow-up through a version-gated Desktop IPC adapter |
+| Codex Desktop on Windows | Experimental | Active-turn steer or idle follow-up through a directly probed Desktop IPC adapter |
 
-The default Codex compatibility allowlist contains the verified Desktop package version `26.715.4045.0`. Unknown or undetectable versions fail closed. Developers can explicitly add versions with `AGENT_CALLBACK_CODEX_DESKTOP_ALLOWLIST`; this is a compatibility opt-in, not a stability claim.
+The adapter does not reject a Codex Desktop package based on its version number. It attempts the current IPC handshake and operation directly, then reports the actual runtime result. Run `agent-callback provider status codex` for a no-message connectivity probe; if stronger assurance is needed after an update, explicitly register a disposable one-shot callback and verify its delivery.
 
 Additional agent providers should implement the narrow `IAgentProvider` boundary and register by name. Callback persistence and trigger handling do not depend on Codex.
 

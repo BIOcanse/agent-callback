@@ -5,7 +5,7 @@ description: Register, handle, diagnose, install, or cleanly uninstall Agent Cal
 
 # Agent Callback
 
-Agent Callback stores one continuation before local work completes. A per-user Host observes a pinned process identity or accepts a credentialed event, then asks the selected provider to deliver a small marker back to the registered conversation. Provider adapters are independent; the first release bundles an experimental, fail-closed Codex Desktop adapter.
+Agent Callback stores one continuation before local work completes. A per-user Host observes a pinned process identity or accepts a credentialed event, then asks the selected provider to deliver a small marker back to the registered conversation. Provider adapters are independent; the first release bundles an experimental Codex Desktop adapter.
 
 ## Resolve the installed app
 
@@ -25,7 +25,7 @@ Prefer the MCP tools when available. Otherwise invoke the absolute `executablePa
 
 Register only when the user explicitly asks to be called back or invokes this Skill. For work expected to finish during the current turn, wait normally instead.
 
-1. Check the selected provider. Use `callback_provider_status`, or CLI `provider status <provider>`. If the Host is stopped, CLI `host start` is allowed for this requested callback. If the provider remains unavailable, report its exact diagnostic and do not claim a callback exists.
+1. Check the selected provider. Use `callback_provider_status`, or CLI `provider status <provider>`. This probes the current provider endpoint directly; do not reject Codex Desktop based only on its package version. If the Host is stopped, CLI `host start` is allowed for this requested callback. If the provider remains unavailable, report its exact diagnostic and do not claim a callback exists. If the user wants stronger assurance after an agent update, register a disposable one-shot test callback only with explicit approval.
 2. Choose exactly one source:
    - Process: use `callback_register_process`, or CLI `register process`, for an already-running stable outer process. Prefer the process that owns the whole build, test, download, or analysis job. Include an expected command-line marker when a unique non-secret marker is available.
    - Event: use `callback_register_event`, or CLI `register event`, only when the local program can keep the returned trigger secret and later invoke CLI `trigger`. Never place the secret in logs, source control, labels, or continuation text.

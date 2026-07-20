@@ -1,7 +1,7 @@
 # Agent Callback 独立产品方案
 
 日期：2026-07-20
-状态：`0.1.0-alpha.1` 已实现并进入公开发布自检
+状态：`0.1.0-alpha.2` 已实现并进入公开发布自检
 
 ## 结论
 
@@ -234,11 +234,11 @@ Codex 官方开源 app-server 当前已经公开 `thread/resume`、`turn/start`�
 决策规则：
 
 1. 若官方 app-server 能满足“原 Desktop 对话、正确显示、活跃轮 steer、无竞争 writer”，首版改用官方协议；
-2. 若不能，首版保留已经验证的 Desktop IPC Adapter，但必须标记为 Experimental、绑定 Codex Desktop 版本、提供只读兼容探针并失败关闭；
+2. 若不能，首版保留已经验证的 Desktop IPC Adapter，但必须标记为 Experimental；不按 Codex Desktop 版本号预先拒绝，而是通过只读 IPC 探针和实际操作结果判断当前可用性；
 3. 只依赖内部 IPC 的版本不能标为稳定版；至少经过连续两个 Codex Desktop 版本的兼容验证后，才能从 alpha 升到 beta；
 4. 不使用 Bridge、app-server 写入、UI 点击或会话文件写入作为静默 fallback。若未来官方 app-server 成为主通道，它必须通过上述验证后显式替换内部通道，而不是同一次投递的后备写路径。
 
-2026-07-20 的 Windows M0 结果已记录在 `docs/transport-decision.md`：当前安装的 Codex CLI 不支持 Windows app-server daemon lifecycle，另起 stdio app-server 也没有已确认的 Desktop-owned thread 单 writer 与可见同步契约。因此 v0.1 采用可替换、版本约束、明确标为 Experimental 的 Desktop IPC Adapter。
+2026-07-20 的 Windows M0 结果已记录在 `docs/transport-decision.md`：当前安装的 Codex CLI 不支持 Windows app-server daemon lifecycle，另起 stdio app-server 也没有已确认的 Desktop-owned thread 单 writer 与可见同步契约。因此 v0.1 采用可替换、明确标为 Experimental 的 Desktop IPC Adapter；`0.1.0-alpha.2` 起取消版本号门禁，以实际 IPC 探测和投递结果为准。
 
 ## App、Plugin 与 Skill
 

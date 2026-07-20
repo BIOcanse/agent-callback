@@ -2,7 +2,7 @@
 param(
     [string]$InstallDirectory = (Join-Path $env:LOCALAPPDATA 'Programs\AgentCallback'),
     [string]$SkillDirectory = (Join-Path $env:USERPROFILE '.codex\skills\agent-callback'),
-    [string]$Version = '0.1.0-alpha.1',
+    [string]$Version = '0.1.0-alpha.2',
     [switch]$DoNotStartHost
 )
 
@@ -148,7 +148,7 @@ try {
         installedUtc = [DateTimeOffset]::UtcNow.ToString('O')
         installedProviders = @('codex')
         providerNotes = [ordered]@{
-            codex = 'Experimental Windows Desktop adapter; compatibility is version-gated and fail-closed.'
+            codex = 'Experimental Windows Desktop adapter; availability is checked through the current IPC endpoint rather than a package-version gate.'
         }
         dataRemovalPolicy = 'Preserved by default; use uninstall.ps1 -RemoveData only with explicit approval.'
     }

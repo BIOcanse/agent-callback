@@ -2,7 +2,7 @@
 
 ## Current State
 
-Provider-neutral `0.1.0-alpha.1` is published as a public repository and Windows x64 prerelease.
+Provider-neutral `0.1.0-alpha.1` is public. `0.1.0-alpha.2` is implemented and installed locally with direct runtime probing; its end-to-end callback and public release remain in progress.
 
 ## Completed
 
@@ -15,13 +15,13 @@ Provider-neutral `0.1.0-alpha.1` is published as a public repository and Windows
 - Completed the read-only M0 transport gate and recorded the v0.1 decision in `docs/transport-decision.md`.
 - Implemented the .NET 10 Windows Host, per-user named-pipe protocol, SQLite persistence, DPAPI-protected instructions, process and event sources, dispatch leases, retries, and ambiguous-delivery recovery.
 - Implemented the CLI, thin stdio MCP server, experimental Codex Desktop IPC provider, Plugin manifest, and callback Skill.
-- Added thirteen passing unit tests covering state transitions, restart recovery, trigger credentials and idempotency, PID identity capture, provider selection, MCP framing, compatibility gating, and smart-delivery race handling.
+- Maintained ten passing unit tests covering state transitions, restart recovery, trigger credentials and idempotency, PID identity capture, provider selection, MCP framing, and smart-delivery race handling; removed three obsolete allowlist-gate tests with the gate itself.
 - Replaced the vulnerable SQLite native bundle with `SQLitePCLRaw.bundle_e_sqlite3` 3.0.3 while retaining `Microsoft.Data.Sqlite.Core` 10.0.9.
 - Added and Windows PowerShell 5.1-validated `packaging/windows/publish.ps1`; it emits a self-contained `win-x64` single-file App, ZIP, executable digest, and release-side ZIP digest.
 - Added per-user `host start|stop|status|enable-startup|disable-startup` lifecycle commands; the installer owns App installation and clean uninstallation.
 - Passed the official Skill and Plugin validators.
 - Passed Host/CLI smoke tests for registration, read, cancellation, lifecycle control, MCP initialize/tools-list, and a read-only Codex provider probe. No callback was triggered and no message was sent.
-- Added a fail-closed Codex Desktop package-version gate with verified default version `26.715.4045.0`.
+- Removed the alpha.1 Codex Desktop package-version gate, version detector, environment allowlist, and preflight delivery rejection. Provider status now probes the current IPC endpoint directly.
 - Completed a real callback into the current active conversation: one event callback moved through `registered -> ready -> delivered -> acknowledged`, used the experimental Desktop IPC steer path once, and produced no duplicate or error.
 - Removed the core hard-coded provider choice. Registration and dispatch now resolve named providers through `IAgentProviderRegistry`; Codex remains only the default bundled adapter.
 - Added per-user installer/uninstaller packaging, Windows startup and Installed Apps registry entries, generated Skill installation metadata, checksum verification, and ownership-checked optional data removal.
@@ -34,6 +34,10 @@ Provider-neutral `0.1.0-alpha.1` is published as a public repository and Windows
 1. Add signing and broader provider/version compatibility in later releases.
 2. Re-test per-user login startup in a disposable Windows user profile before promoting beyond alpha.
 
+## In Progress
+
+- Verify the installed alpha.2 package with a real one-shot callback, then publish it.
+
 ## Decisions
 
 - The project is independent from Codex Thread Automation and must not depend on its 8787 API, runtime, global tasks, scheduler, Team system, rule system, or Bridge.
@@ -43,6 +47,7 @@ Provider-neutral `0.1.0-alpha.1` is published as a public repository and Windows
 - Provider-specific behavior is isolated behind `IAgentProviderRegistry`; v0.1 ships Codex only, while the public name remains Agent Callback.
 - The project license is Apache-2.0.
 - V0.1 selects the experimental Codex Desktop IPC adapter on Windows; a separate public app-server process is not a write fallback for Desktop-owned conversations.
+- Provider compatibility is determined by the current IPC probe and operation result, not by a package-version allowlist. Users may run the probe or an explicit test callback after an update.
 
 ## Blockers
 

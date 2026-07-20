@@ -194,7 +194,7 @@ public sealed class McpServer
     {
         protocolVersion = "2025-06-18",
         capabilities = new { tools = new { listChanged = false } },
-        serverInfo = new { name = "agent-callback", version = "0.1.0-alpha.1" }
+        serverInfo = new { name = "agent-callback", version = "0.1.0-alpha.2" }
     };
 
     private static object[] ToolDefinitions() =>

@@ -4,7 +4,7 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>AgentCallback</RootNamespace>
     <AssemblyName>agent-callback</AssemblyName>
-    <Version>0.1.0-alpha.1</Version>
+    <Version>0.1.0-alpha.2</Version>
     <Product>Agent Callback</Product>
     <Description>Durable one-shot callbacks into agent conversations.</Description>
     <Authors>BIOcanse</Authors>

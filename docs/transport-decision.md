@@ -20,8 +20,9 @@ Do not use a separately launched public app-server process as a write fallback f
 ## Consequences
 
 - The first package target is Windows x64.
-- The provider reports `experimental: true`, the selected transport, and compatibility diagnostics.
-- The provider verifies the running Codex Desktop package version before every probe or write. The alpha allowlist starts with the locally verified package `26.715.4045.0`; unknown or undetectable versions fail closed.
+- The provider reports `experimental: true`, the selected transport, and runtime diagnostics.
+- Starting with `0.1.0-alpha.2`, the provider does not inspect or reject the Codex Desktop package version. It probes the current Desktop IPC endpoint directly and attempts delivery when that endpoint is available.
+- Users who want additional confidence after a Desktop update can run the no-message provider probe or explicitly exercise a disposable one-shot callback.
 - Only the Codex Desktop named-pipe write path is implemented. Bridge, UI automation, transcript mutation, terminal input, and a separate app-server writer are prohibited fallbacks.
 - A transport timeout, disconnect, malformed response, or unknown post-write state is ambiguous and is never followed by a different write path.
 - Public app-server support remains a future adapter or replacement, not an automatic retry route.
@@ -40,4 +41,4 @@ Re-run this decision when any of the following changes:
 
 This decision used read-only CLI help, version, named-pipe availability, public protocol documentation, prior local delivery evidence, and an independent read-only app-server transport audit. The audit confirmed that public `resume/start/steer` primitives do not provide a supported shared owner endpoint for the Desktop-owned stdio app-server on Windows. No test message was injected into the current user task during this decision.
 
-After explicit approval, `0.1.0-alpha.1` completed one real event callback into the current active conversation. The callback was accepted once through `thread-follower-steer-turn`, recorded `attachedToExisting: true`, reached `delivered`, was visibly received, and was then acknowledged. This validates the active-turn path for Desktop package `26.715.4045.0`; the idle follow-up path remains covered by unit tests rather than a second real message test.
+After explicit approval, `0.1.0-alpha.1` completed one real event callback into the current active conversation. The callback was accepted once through `thread-follower-steer-turn`, recorded `attachedToExisting: true`, reached `delivered`, was visibly received, and was then acknowledged. This validates the active-turn path observed at that time; the idle follow-up path remains covered by unit tests rather than a second real message test.

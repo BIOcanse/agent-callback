@@ -4,28 +4,11 @@ public sealed class CodexDesktopConversationTransport : ICodexConversationTransp
 {
     private static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(30);
     private readonly CodexDesktopIpcInvoker _invoker = new();
-    private readonly CodexDesktopCompatibilityGate _compatibilityGate;
-
-    public CodexDesktopConversationTransport()
-        : this(new CodexDesktopCompatibilityGate(new WindowsCodexDesktopVersionDetector()))
-    {
-    }
-
-    public CodexDesktopConversationTransport(CodexDesktopCompatibilityGate compatibilityGate)
-    {
-        _compatibilityGate = compatibilityGate;
-    }
 
     public string Name => "codex-desktop-ipc-experimental";
 
     public async Task<CodexTransportStatus> ProbeAsync(CancellationToken cancellationToken)
     {
-        var compatibility = _compatibilityGate.Check();
-        if (!compatibility.Compatible)
-        {
-            return new CodexTransportStatus(false, null, compatibility.Error);
-        }
-
         try
         {
             var clientId = await _invoker.ProbeAsync(cancellationToken);
@@ -43,12 +26,6 @@ public sealed class CodexDesktopConversationTransport : ICodexConversationTransp
         string clientMessageId,
         CancellationToken cancellationToken)
     {
-        var rejected = CheckCompatibility(clientMessageId);
-        if (rejected is not null)
-        {
-            return Task.FromResult(rejected);
-        }
-
         var parameters = new Dictionary<string, object?>
         {
             ["conversationId"] = threadId,
@@ -73,12 +50,6 @@ public sealed class CodexDesktopConversationTransport : ICodexConversationTransp
         string clientMessageId,
         CancellationToken cancellationToken)
     {
-        var rejected = CheckCompatibility(clientMessageId);
-        if (rejected is not null)
-        {
-            return Task.FromResult(rejected);
-        }
-
         var cwd = workingDirectory.Trim();
         var workspaceRoots = cwd.Length == 0 ? Array.Empty<string>() : new[] { cwd };
         var parameters = new Dictionary<string, object?>
@@ -164,16 +135,4 @@ public sealed class CodexDesktopConversationTransport : ICodexConversationTransp
         }
     ];
 
-    private CodexOperationResult? CheckCompatibility(string clientMessageId)
-    {
-        var compatibility = _compatibilityGate.Check();
-        return compatibility.Compatible
-            ? null
-            : new CodexOperationResult(
-                Accepted: false,
-                clientMessageId,
-                HandledByClientId: null,
-                compatibility.Error ?? "Codex Desktop compatibility could not be verified.",
-                DeliveryUncertain: false);
-    }
 }

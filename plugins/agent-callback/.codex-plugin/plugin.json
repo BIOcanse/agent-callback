@@ -1,6 +1,6 @@
 {
   "name": "agent-callback",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Register durable one-shot callbacks that resume an existing agent conversation after local work finishes.",
   "author": {
     "name": "Agent Callback Contributors"
