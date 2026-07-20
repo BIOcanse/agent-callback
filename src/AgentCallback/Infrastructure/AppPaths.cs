@@ -5,6 +5,9 @@ namespace AgentCallback.Infrastructure;
 
 public sealed record AppPaths(string DataDirectory, string DatabasePath, string PipeName)
 {
+    public string ProviderConnectionsPath =>
+        Path.Combine(DataDirectory, "provider-connections.json");
+
     public static AppPaths Resolve()
     {
         var configured = Environment.GetEnvironmentVariable("AGENT_CALLBACK_DATA_DIR");

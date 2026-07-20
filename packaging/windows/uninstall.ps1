@@ -105,6 +105,50 @@ try {
         }
     }
 
+    $openCodeSkillRemoved = $false
+    if ($state.PSObject.Properties.Name -contains 'openCodeSkillDirectory') {
+        $openCodeSkillDirectory = [System.IO.Path]::GetFullPath($state.openCodeSkillDirectory)
+        $openCodeConfigRoot = [System.IO.Path]::GetFullPath(
+            (Join-Path $env:USERPROFILE '.config\opencode'))
+        $openCodeSkillOwnerPath = Join-Path $openCodeSkillDirectory 'references\app-installation.json'
+        if (Test-Path -LiteralPath $openCodeSkillOwnerPath -PathType Leaf) {
+            $openCodeSkillOwner = Get-Content -LiteralPath $openCodeSkillOwnerPath -Raw | ConvertFrom-Json
+            if ($openCodeSkillOwner.installId -eq $state.installId) {
+                Remove-BoundedTree -Path $openCodeSkillDirectory -AllowedRoot $openCodeConfigRoot
+                $openCodeSkillRemoved = $true
+            }
+            else {
+                throw 'Installed OpenCode Skill ownership does not match the App installation.'
+            }
+        }
+    }
+
+    $openCodePluginRemoved = $false
+    if ($state.PSObject.Properties.Name -contains 'openCodePluginPath') {
+        $openCodePluginPath = [System.IO.Path]::GetFullPath($state.openCodePluginPath)
+        $openCodePluginRoot = [System.IO.Path]::GetFullPath(
+            (Join-Path $env:USERPROFILE '.config\opencode')).TrimEnd('\') + '\'
+        if (-not $openCodePluginPath.StartsWith(
+            $openCodePluginRoot,
+            [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "Recorded OpenCode plugin escaped its allowed root: $openCodePluginPath"
+        }
+
+        if (Test-Path -LiteralPath $openCodePluginPath -PathType Leaf) {
+            $pluginContent = Get-Content -LiteralPath $openCodePluginPath -Raw
+            $installIdJson = $state.installId | ConvertTo-Json -Compress
+            $ownerMarker = 'const managedInstallId = ' + $installIdJson
+            if ($pluginContent.IndexOf(
+                $ownerMarker,
+                [System.StringComparison]::Ordinal) -lt 0) {
+                throw 'Installed OpenCode plugin ownership does not match the App installation.'
+            }
+
+            Remove-Item -LiteralPath $openCodePluginPath -Force
+            $openCodePluginRemoved = $true
+        }
+    }
+
     $dataRemoved = $false
     if ($RemoveData) {
         if ($state.dataOwned -ne $true) {
@@ -131,6 +175,8 @@ try {
         uninstalled = $true
         installDirectory = $installDirectory
         skillDirectory = $skillDirectory
+        openCodeSkillRemoved = $openCodeSkillRemoved
+        openCodePluginRemoved = $openCodePluginRemoved
         dataDirectory = $state.dataDirectory
         dataRemoved = $dataRemoved
     }

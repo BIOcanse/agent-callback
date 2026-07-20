@@ -1,20 +1,20 @@
 # Agent Callback 独立产品方案
 
 日期：2026-07-20
-状态：`0.1.0-alpha.2` 已实现并进入公开发布自检
+状态：`0.1.0-alpha.3` 已实现并进入公开发布门禁
 
 ## 结论
 
-发布一个独立、开源、只负责一次性回调的 provider-neutral 本地产品 **Agent Callback**。Codex Desktop 是首个适配器，不是产品品牌或核心模型依赖。
+发布一个独立、开源、只负责一次性回调的 provider-neutral 本地产品 **Agent Callback**。Codex Desktop 是首个适配器，OpenCode 是第二个适配器；两者都不是产品品牌或核心模型依赖。
 
-首版只解决这一件事：程序或长时间进程结束后，可靠地向已经登记的原 Codex 对话提交一条预先授权的后续消息，让同一个任务恢复处理。
+首版只解决这一件事：程序或长时间进程结束后，可靠地向已经登记的原 Agent 对话提交一条预先授权的后续消息，让同一个任务恢复处理。
 
 它不是 Codex Thread Automation 的精简皮肤，也不包含定时任务、循环调度、Team、规则引擎、任务看板、配额管理或通用 Agent 控制台。现有 Codex Thread Automation 只作为已经验证过的代码与故障语义来源；新产品独立安装、独立存储、独立运行。
 
 对外发布时采用两部分、同版本交付：
 
 1. 一个本地原生 App，提供耐久回调、进程监听、Provider Registry、CLI 和本地 MCP 服务；
-2. 面向具体 Agent 的集成包；首版包含 Codex MCP 配置和配套 Skill。
+2. 面向具体 Agent 的集成包；当前包含 Codex/OpenCode Skill、Codex 适配器和 OpenCode 插件。
 
 Codex 官方当前把 Plugin 作为可安装和发布单元，Plugin 可以同时包含 MCP-backed App 与 Skills。因此，对用户呈现为一个 Plugin，对本机运行则由轻量原生 Host 承担可靠性。
 
@@ -122,7 +122,7 @@ Process source 不接受触发负载。Host 只在已固定的 PID 与创建时�
 
 ### 投递信封
 
-投递给 Codex 的文本保持短小、可识别：
+投递给目标 Agent 的文本保持短小、可识别：
 
 ```text
 [agent-callback:v1:<callbackId>]
@@ -171,12 +171,16 @@ stateDiagram-v2
 ```mermaid
 flowchart LR
     P["Program or process"] -->|"trigger / exit"| H["Agent Callback Host"]
-    C["Codex + Skill"] -->|"MCP or CLI register"| H
+    C["Codex or OpenCode + Skill"] -->|"MCP or CLI register"| H
     H --> S["SQLite callback store"]
     H --> D["One-shot dispatcher"]
-    D --> A["Codex provider adapter"]
+    D --> R["Provider registry"]
+    R --> A["Codex adapter"]
+    R --> O["OpenCode adapter"]
     A --> T["Existing Codex conversation"]
+    O --> U["Existing OpenCode session"]
     T -->|"callback envelope"| C
+    U -->|"callback envelope"| C
 ```
 
 ### 单一原生可执行文件
@@ -203,8 +207,9 @@ MCP 进程不是耐久 Host。Codex 结束任务或重启后 MCP 子进程可能
 - `Infrastructure/Storage`：SQLite、事务、加密和迁移；
 - `Triggers/Process`：PID + 创建时间绑定及进程结束观察；
 - `Providers/Codex`：Codex 状态检查、start-turn、steer-turn 和错误映射；
+- `Providers/OpenCode`：插件连接登记、DPAPI 凭据存储、公开 server 探测和 idle follow-up；
 - `Transport/NamedPipe`：本地 App API；
-- `Mcp`：面向 Codex 的窄工具集；
+- `Mcp`：面向受支持 Agent 的窄工具集；
 - `Cli`：面向用户和普通程序的命令。
 
 Provider 只保留一个小接口，不实现通用 Agent 控制面：

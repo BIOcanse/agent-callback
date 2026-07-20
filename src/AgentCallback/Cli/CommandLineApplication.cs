@@ -1,10 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Reflection;
+using AgentCallback.Application;
 using AgentCallback.Domain;
 using AgentCallback.Host;
 using AgentCallback.Infrastructure;
 using AgentCallback.Mcp;
+using AgentCallback.Providers.OpenCode;
 using AgentCallback.Transport.NamedPipe;
 
 namespace AgentCallback.Cli;
@@ -128,17 +130,42 @@ public sealed class CommandLineApplication
         string[] args,
         CancellationToken cancellationToken)
     {
-        if (args.Length is < 1 or > 2 ||
-            !string.Equals(args[0], "status", StringComparison.OrdinalIgnoreCase))
+        if (args.Length is >= 1 and <= 2 &&
+            string.Equals(args[0], "status", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Usage: agent-callback provider status [provider]");
+            WriteJson(await _client.CallAsync<ProviderStatusRequest, ProviderStatus>(
+                "provider.status",
+                new ProviderStatusRequest(args.Length == 2 ? args[1] : "codex"),
+                cancellationToken));
+            return 0;
         }
 
-        WriteJson(await _client.CallAsync<ProviderStatusRequest, ProviderStatus>(
-            "provider.status",
-            new ProviderStatusRequest(args.Length == 2 ? args[1] : "codex"),
-            cancellationToken));
-        return 0;
+        if (args.Length == 3 &&
+            string.Equals(args[0], "connect", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(args[1], "opencode", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(args[2], "--stdin", StringComparison.OrdinalIgnoreCase))
+        {
+            var input = await Console.In.ReadToEndAsync(cancellationToken);
+            if (input.Length > 16 * 1024)
+            {
+                throw new InvalidDataException("OpenCode connection payload is too large.");
+            }
+
+            var registration = JsonSerializer.Deserialize<OpenCodeConnectionRegistration>(
+                input,
+                OutputJson) ?? throw new InvalidDataException(
+                    "OpenCode connection payload is invalid.");
+            WriteJson(await _client.CallAsync<
+                OpenCodeConnectionRegistration,
+                OpenCodeConnectionResult>(
+                "provider.connect.opencode",
+                registration,
+                cancellationToken));
+            return 0;
+        }
+
+        throw new InvalidOperationException(
+            "Usage: agent-callback provider status [provider] | provider connect opencode --stdin");
     }
 
     private async Task<int> RunRegisterCommandAsync(
@@ -157,14 +184,14 @@ public sealed class CommandLineApplication
             _ => throw new InvalidOperationException("Registration type must be process or event.")
         };
         var reader = new ArgumentReader(args[1..]);
-        var threadId = reader.Optional("thread") ??
-            Environment.GetEnvironmentVariable("CODEX_THREAD_ID") ??
-            throw new InvalidOperationException(
-                "--thread is required when CODEX_THREAD_ID is unavailable.");
+        var provider = reader.Optional("provider") ??
+            Environment.GetEnvironmentVariable("AGENT_CALLBACK_PROVIDER") ??
+            "codex";
+        var threadId = AgentTargetResolver.Resolve(provider, reader.Optional("thread"));
         var request = new RegisterCallbackRequest
         {
             Label = reader.Optional("label"),
-            Provider = reader.Optional("provider") ?? "codex",
+            Provider = provider,
             TargetThreadId = threadId,
             SourceKind = source,
             ProcessId = source == CallbackSourceKind.Process
@@ -258,7 +285,7 @@ public sealed class CommandLineApplication
         {
             name = "agent-callback",
             version,
-            providers = new[] { "codex" },
+            providers = new[] { "codex", "opencode" },
             coreIsProviderNeutral = true
         });
         return 0;
@@ -273,13 +300,14 @@ public sealed class CommandLineApplication
     private void PrintHelp()
     {
         Console.Out.WriteLine($"""
-            Agent Callback v0.1 (Windows, Codex Desktop transport is experimental)
+            Agent Callback v0.1 (Windows, provider transports may be experimental)
 
             Data directory: {_paths.DataDirectory}
 
             Commands:
               agent-callback host run|start|stop|status|enable-startup|disable-startup
               agent-callback provider status [provider]
+              agent-callback provider connect opencode --stdin
               agent-callback register process --pid <pid> --instruction <text> [--thread <id>]
               agent-callback register event --instruction <text> [--thread <id>]
               agent-callback trigger <id> --secret <secret> [--outcome succeeded|failed|canceled|unknown]

@@ -7,6 +7,7 @@ using AgentCallback.Infrastructure.Security;
 using AgentCallback.Infrastructure.Storage;
 using AgentCallback.Providers.Codex;
 using AgentCallback.Providers.Codex.DesktopIpc;
+using AgentCallback.Providers.OpenCode;
 using AgentCallback.Transport.NamedPipe;
 using AgentCallback.Triggers.Process;
 
@@ -36,16 +37,22 @@ public static class Program
     {
         var stopSignal = new HostStopSignal();
         var processInspector = new WindowsProcessInspector();
-        ICallbackStore store = new SqliteCallbackStore(paths, new DpapiSecretProtector());
+        var secretProtector = new DpapiSecretProtector();
+        ICallbackStore store = new SqliteCallbackStore(paths, secretProtector);
         ICodexConversationTransport transport = new CodexDesktopConversationTransport();
-        var provider = new CodexSmartProvider(transport);
-        var providers = new AgentProviderRegistry([provider]);
+        var codexProvider = new CodexSmartProvider(transport);
+        var openCodeConnections = new OpenCodeConnectionStore(paths, secretProtector);
+        var openCodeProvider = new OpenCodeProvider(
+            openCodeConnections,
+            new OpenCodeHttpTransport());
+        var providers = new AgentProviderRegistry([codexProvider, openCodeProvider]);
         var service = new CallbackService(store, processInspector, providers);
         var worker = new CallbackHostWorker(store, service, processInspector, providers);
         var handler = new CallbackHostRequestHandler(
             service,
             store,
             providers,
+            openCodeConnections,
             paths,
             stopSignal);
         return new CallbackHost(paths, store, worker, handler, stopSignal);

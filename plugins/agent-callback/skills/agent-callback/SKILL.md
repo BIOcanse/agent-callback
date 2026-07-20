@@ -5,13 +5,14 @@ description: Register, handle, diagnose, install, or cleanly uninstall Agent Cal
 
 # Agent Callback
 
-Agent Callback stores one continuation before local work completes. A per-user Host observes a pinned process identity or accepts a credentialed event, then asks the selected provider to deliver a small marker back to the registered conversation. Provider adapters are independent; the first release bundles an experimental Codex Desktop adapter.
+Agent Callback stores one continuation before local work completes. A per-user Host observes a pinned process identity or accepts a credentialed event, then asks the selected provider to deliver a small marker back to the registered conversation. Provider adapters are independent; the App bundles experimental Codex Desktop and OpenCode adapters.
 
 ## Resolve the installed app
 
 Before using CLI fallback, installation management, or diagnostics, read `references/app-installation.json` next to this Skill. The installer generates this machine-specific file and refreshes it on every install. Treat it as the authority for:
 
 - `executablePath`, `installDirectory`, and `dataDirectory`;
+- the owned `openCodePluginPath` when the OpenCode integration is installed;
 - installed version and provider list;
 - startup and uninstall registry locations;
 - the exact `uninstallCommand`;
@@ -25,14 +26,15 @@ Prefer the MCP tools when available. Otherwise invoke the absolute `executablePa
 
 Register only when the user explicitly asks to be called back or invokes this Skill. For work expected to finish during the current turn, wait normally instead.
 
-1. Check the selected provider. Use `callback_provider_status`, or CLI `provider status <provider>`. This probes the current provider endpoint directly; do not reject Codex Desktop based only on its package version. If the Host is stopped, CLI `host start` is allowed for this requested callback. If the provider remains unavailable, report its exact diagnostic and do not claim a callback exists. If the user wants stronger assurance after an agent update, register a disposable one-shot test callback only with explicit approval.
-2. Choose exactly one source:
+1. Check the selected provider. Use `callback_provider_status`, or CLI `provider status <provider>`. This probes the current provider endpoint directly; do not reject Codex Desktop based only on its package version. OpenCode must be restarted once after installation so its owned plugin can register the current loopback server. If the Host is stopped, CLI `host start` is allowed for this requested callback. If the provider remains unavailable, report its exact diagnostic and do not claim a callback exists. If the user wants stronger assurance after an agent update, register a disposable one-shot test callback only with explicit approval.
+2. Resolve the exact provider target. Codex supplies `CODEX_THREAD_ID`. OpenCode shell tools receive `AGENT_CALLBACK_PROVIDER=opencode` and an opaque `AGENT_CALLBACK_TARGET_ID` from the installed plugin. Let the CLI/MCP use these values; never guess a recent OpenCode session or copy a target between sessions. If the OpenCode variables are absent, report that the plugin is not active and do not register.
+3. Choose exactly one source:
    - Process: use `callback_register_process`, or CLI `register process`, for an already-running stable outer process. Prefer the process that owns the whole build, test, download, or analysis job. Include an expected command-line marker when a unique non-secret marker is available.
    - Event: use `callback_register_event`, or CLI `register event`, only when the local program can keep the returned trigger secret and later invoke CLI `trigger`. Never place the secret in logs, source control, labels, or continuation text.
-3. Store a self-contained continuation instruction: what to verify, which safe next action to take, and what outcome to report. Do not store credentials or an unrestricted message template.
-4. Declare only relevant evidence paths. These are an allowlist for event-reported evidence references, not proof that a result is correct.
-5. Call registration once. Report the callback ID, provider, source, expiration, and state. For an event callback, give the trigger secret only to the intended local process and avoid repeating it.
-6. End the current turn after registration. The Host, not the MCP process, owns durable observation.
+4. Store a self-contained continuation instruction: what to verify, which safe next action to take, and what outcome to report. Do not store credentials or an unrestricted message template.
+5. Declare only relevant evidence paths. These are an allowlist for event-reported evidence references, not proof that a result is correct.
+6. Call registration once. Report the callback ID, provider, source, expiration, and state. For an event callback, give the trigger secret only to the intended local process and avoid repeating it.
+7. End the current turn after registration. The Host, not the MCP process, owns durable observation.
 
 Do not register the same logical completion more than once. If the response state is unknown, list callbacks and reconcile by label, provider, process identity, conversation, and creation time before trying again.
 
@@ -61,9 +63,9 @@ If delivery is `ambiguous`, do not automatically re-register or resend: the mess
 Only uninstall when the user explicitly asks.
 
 1. Read and validate `references/app-installation.json`. Confirm its `installId`, paths, registry keys, and uninstall command before mutation.
-2. By default, invoke the exact recorded `uninstallCommand`. This stops the Host and removes the App files, installed Skill, current-user startup value, and Windows uninstall entry while preserving callback data.
+2. By default, invoke the exact recorded `uninstallCommand`. This stops the Host and removes the App files, installed Skill, owned OpenCode plugin, current-user startup value, and Windows uninstall entry while preserving callback data.
 3. Remove callback data only when the user explicitly asks for all local history and secrets to be erased. Invoke the recorded uninstall script with `-RemoveData`; its ownership marker and path bounds must pass. Never manually recurse through the data directory.
-4. Verify that the recorded executable, Skill directory, startup value, and uninstall registry key are gone. If data was preserved, report its recorded path.
+4. Verify that the recorded executable, Skill directory, owned OpenCode plugin, startup value, and uninstall registry key are gone. If data was preserved, report its recorded path.
 
 Because uninstall removes this Skill, retain the validated paths in the current turn before invoking it. Do not delete a similarly named directory without a matching `installId` ownership record.
 

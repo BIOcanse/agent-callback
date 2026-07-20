@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using AgentCallback.Application;
 using AgentCallback.Domain;
 using AgentCallback.Transport.NamedPipe;
 
@@ -162,14 +163,16 @@ public sealed class McpServer
         CallbackSourceKind sourceKind,
         CancellationToken cancellationToken)
     {
-        var threadId = OptionalString(arguments, "thread_id") ??
-            Environment.GetEnvironmentVariable("CODEX_THREAD_ID") ??
-            throw new InvalidOperationException(
-                "thread_id is required when CODEX_THREAD_ID is unavailable.");
+        var provider = OptionalString(arguments, "provider") ??
+            Environment.GetEnvironmentVariable("AGENT_CALLBACK_PROVIDER") ??
+            "codex";
+        var threadId = AgentTargetResolver.Resolve(
+            provider,
+            OptionalString(arguments, "thread_id"));
         var request = new RegisterCallbackRequest
         {
             Label = OptionalString(arguments, "label"),
-            Provider = OptionalString(arguments, "provider") ?? "codex",
+            Provider = provider,
             TargetThreadId = threadId,
             SourceKind = sourceKind,
             ProcessId = sourceKind == CallbackSourceKind.Process
@@ -194,7 +197,7 @@ public sealed class McpServer
     {
         protocolVersion = "2025-06-18",
         capabilities = new { tools = new { listChanged = false } },
-        serverInfo = new { name = "agent-callback", version = "0.1.0-alpha.2" }
+        serverInfo = new { name = "agent-callback", version = "0.1.0-alpha.3" }
     };
 
     private static object[] ToolDefinitions() =>
@@ -215,7 +218,7 @@ public sealed class McpServer
                 ["process_id"] = IntegerProperty("Process id to observe."),
                 ["instruction"] = StringProperty("Stored continuation instruction."),
                 ["provider"] = StringProperty("Agent provider name; defaults to codex."),
-                ["thread_id"] = StringProperty("Target Codex task id; defaults to CODEX_THREAD_ID."),
+                ["thread_id"] = StringProperty("Provider conversation target; normally discovered from the agent environment."),
                 ["working_directory"] = StringProperty("Existing working directory."),
                 ["label"] = StringProperty("Optional short label."),
                 ["expected_command_line_contains"] = StringProperty("Optional PID identity marker."),
@@ -230,7 +233,7 @@ public sealed class McpServer
             {
                 ["instruction"] = StringProperty("Stored continuation instruction."),
                 ["provider"] = StringProperty("Agent provider name; defaults to codex."),
-                ["thread_id"] = StringProperty("Target Codex task id; defaults to CODEX_THREAD_ID."),
+                ["thread_id"] = StringProperty("Provider conversation target; normally discovered from the agent environment."),
                 ["working_directory"] = StringProperty("Existing working directory."),
                 ["label"] = StringProperty("Optional short label."),
                 ["evidence_paths"] = StringArrayProperty("Paths Codex may inspect after callback."),

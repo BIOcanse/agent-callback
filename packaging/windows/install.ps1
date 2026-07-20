@@ -2,7 +2,9 @@
 param(
     [string]$InstallDirectory = (Join-Path $env:LOCALAPPDATA 'Programs\AgentCallback'),
     [string]$SkillDirectory = (Join-Path $env:USERPROFILE '.codex\skills\agent-callback'),
-    [string]$Version = '0.1.0-alpha.2',
+    [string]$OpenCodeSkillDirectory = (Join-Path $env:USERPROFILE '.config\opencode\skills\agent-callback'),
+    [string]$OpenCodePluginDirectory = (Join-Path $env:USERPROFILE '.config\opencode\plugins'),
+    [string]$Version = '0.1.0-alpha.3',
     [switch]$DoNotStartHost
 )
 
@@ -52,12 +54,14 @@ try {
     $sourceReadme = Join-Path $sourceRoot 'README.md'
     $sourceChecksums = Join-Path $sourceRoot 'SHA256SUMS.txt'
     $sourceSkill = Join-Path $sourceRoot 'skill\agent-callback'
+    $sourceOpenCodePlugin = Join-Path $sourceRoot 'opencode\agent-callback.js'
     foreach ($requiredFile in @(
         $sourceExecutable,
         $sourceUninstaller,
         $sourceLicense,
         $sourceReadme,
         $sourceChecksums,
+        $sourceOpenCodePlugin,
         (Join-Path $sourceSkill 'SKILL.md'),
         (Join-Path $sourceSkill 'agents\openai.yaml')
     )) {
@@ -79,14 +83,20 @@ try {
 
     $programsRoot = Join-Path $env:LOCALAPPDATA 'Programs'
     $codexSkillsRoot = Join-Path $env:USERPROFILE '.codex\skills'
+    $openCodeConfigRoot = Join-Path $env:USERPROFILE '.config\opencode'
     $resolvedInstall = Assert-ChildPath -Path $InstallDirectory -AllowedRoot $programsRoot -Description 'Install directory'
     $resolvedSkill = Assert-ChildPath -Path $SkillDirectory -AllowedRoot $codexSkillsRoot -Description 'Skill directory'
+    $resolvedOpenCodeSkill = Assert-ChildPath -Path $OpenCodeSkillDirectory -AllowedRoot $openCodeConfigRoot -Description 'OpenCode skill directory'
+    $resolvedOpenCodePluginDirectory = Assert-ChildPath -Path $OpenCodePluginDirectory -AllowedRoot $openCodeConfigRoot -Description 'OpenCode plugin directory'
     $dataDirectory = [System.IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'AgentCallback'))
     $installedExecutable = Join-Path $resolvedInstall 'agent-callback.exe'
     $installedUninstaller = Join-Path $resolvedInstall 'uninstall.ps1'
     $installedState = Join-Path $resolvedInstall 'install-state.json'
     $skillReferences = Join-Path $resolvedSkill 'references'
     $skillInstallation = Join-Path $skillReferences 'app-installation.json'
+    $openCodeSkillReferences = Join-Path $resolvedOpenCodeSkill 'references'
+    $openCodeSkillInstallation = Join-Path $openCodeSkillReferences 'app-installation.json'
+    $installedOpenCodePlugin = Join-Path $resolvedOpenCodePluginDirectory 'agent-callback.js'
 
     if (Test-Path -LiteralPath $installedExecutable -PathType Leaf) {
         & $installedExecutable host stop 2>$null | Out-Null
@@ -96,6 +106,7 @@ try {
     New-Item -ItemType Directory -Path $resolvedInstall -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $resolvedSkill 'agents') -Force | Out-Null
     New-Item -ItemType Directory -Path $skillReferences -Force | Out-Null
+    New-Item -ItemType Directory -Path $openCodeSkillReferences -Force | Out-Null
     New-Item -ItemType Directory -Path $dataDirectory -Force | Out-Null
 
     Copy-Item -LiteralPath $sourceExecutable -Destination $installedExecutable -Force
@@ -104,9 +115,11 @@ try {
     Copy-Item -LiteralPath $sourceReadme -Destination (Join-Path $resolvedInstall 'README.md') -Force
     Copy-Item -LiteralPath (Join-Path $sourceSkill 'SKILL.md') -Destination (Join-Path $resolvedSkill 'SKILL.md') -Force
     Copy-Item -LiteralPath (Join-Path $sourceSkill 'agents\openai.yaml') -Destination (Join-Path $resolvedSkill 'agents\openai.yaml') -Force
+    Copy-Item -LiteralPath (Join-Path $sourceSkill 'SKILL.md') -Destination (Join-Path $resolvedOpenCodeSkill 'SKILL.md') -Force
     $examplePath = Join-Path $sourceSkill 'references\app-installation.example.json'
     if (Test-Path -LiteralPath $examplePath -PathType Leaf) {
         Copy-Item -LiteralPath $examplePath -Destination (Join-Path $skillReferences 'app-installation.example.json') -Force
+        Copy-Item -LiteralPath $examplePath -Destination (Join-Path $openCodeSkillReferences 'app-installation.example.json') -Force
     }
 
     $ownerPath = Join-Path $dataDirectory 'install-owner.json'
@@ -129,6 +142,31 @@ try {
         $dataOwned = $existingDataEntries.Count -eq 0
     }
 
+    $installIdJson = $installId | ConvertTo-Json -Compress
+    $pluginOwnerMarker = 'const managedInstallId = ' + $installIdJson
+    if (Test-Path -LiteralPath $installedOpenCodePlugin -PathType Leaf) {
+        $existingPlugin = Get-Content -LiteralPath $installedOpenCodePlugin -Raw
+        if ($existingPlugin.IndexOf(
+            $pluginOwnerMarker,
+            [System.StringComparison]::Ordinal) -lt 0) {
+            throw "Existing OpenCode plugin is not owned by this Agent Callback installation: $installedOpenCodePlugin"
+        }
+    }
+
+    New-Item -ItemType Directory -Path $resolvedOpenCodePluginDirectory -Force | Out-Null
+    $pluginTemplate = Get-Content -LiteralPath $sourceOpenCodePlugin -Raw
+    $executableJson = $installedExecutable | ConvertTo-Json -Compress
+    $pluginContent = $pluginTemplate.Replace(
+        '__AGENT_CALLBACK_EXECUTABLE_JSON__',
+        $executableJson).Replace(
+        '__AGENT_CALLBACK_INSTALL_ID_JSON__',
+        $installIdJson)
+    $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText(
+        $installedOpenCodePlugin,
+        $pluginContent,
+        $utf8WithoutBom)
+
     $powerShell = (Get-Command 'powershell.exe' -ErrorAction Stop).Source
     $uninstallCommand = '"' + $powerShell + '" -NoProfile -ExecutionPolicy Bypass -File "' + $installedUninstaller + '"'
     $state = [ordered]@{
@@ -141,19 +179,24 @@ try {
         dataDirectory = $dataDirectory
         dataOwned = $dataOwned
         skillDirectory = $resolvedSkill
+        openCodeSkillDirectory = $resolvedOpenCodeSkill
         startupRegistryKey = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Run'
         startupRegistryValue = 'AgentCallback'
         uninstallRegistryKey = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\AgentCallback'
         uninstallCommand = $uninstallCommand
         installedUtc = [DateTimeOffset]::UtcNow.ToString('O')
-        installedProviders = @('codex')
+        installedProviders = @('codex', 'opencode')
+        openCodePluginDirectory = $resolvedOpenCodePluginDirectory
+        openCodePluginPath = $installedOpenCodePlugin
         providerNotes = [ordered]@{
             codex = 'Experimental Windows Desktop adapter; availability is checked through the current IPC endpoint rather than a package-version gate.'
+            opencode = 'Experimental public plugin and loopback HTTP adapter; restart OpenCode after installation so the plugin can register its current server.'
         }
         dataRemovalPolicy = 'Preserved by default; use uninstall.ps1 -RemoveData only with explicit approval.'
     }
     Write-Utf8Json -Value $state -Path $installedState
     Write-Utf8Json -Value $state -Path $skillInstallation
+    Write-Utf8Json -Value $state -Path $openCodeSkillInstallation
     if ($dataOwned) {
         Write-Utf8Json -Value ([ordered]@{ schemaVersion = 1; installId = $installId }) -Path $ownerPath
     }
@@ -206,6 +249,8 @@ try {
         version = $Version
         executablePath = $installedExecutable
         skillDirectory = $resolvedSkill
+        openCodeSkillDirectory = $resolvedOpenCodeSkill
+        openCodePluginPath = $installedOpenCodePlugin
         dataDirectory = $dataDirectory
         dataOwned = $dataOwned
         hostRunning = $hostRunning

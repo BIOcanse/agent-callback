@@ -3,6 +3,7 @@ using AgentCallback.Application;
 using AgentCallback.Domain;
 using AgentCallback.Infrastructure;
 using AgentCallback.Infrastructure.Storage;
+using AgentCallback.Providers.OpenCode;
 using AgentCallback.Transport.NamedPipe;
 
 namespace AgentCallback.Host;
@@ -12,6 +13,7 @@ public sealed class CallbackHostRequestHandler
     private readonly CallbackService _service;
     private readonly ICallbackStore _store;
     private readonly IAgentProviderRegistry _providers;
+    private readonly IOpenCodeConnectionStore _openCodeConnections;
     private readonly AppPaths _paths;
     private readonly HostStopSignal _stopSignal;
     private readonly DateTimeOffset _startedUtc = DateTimeOffset.UtcNow;
@@ -20,12 +22,14 @@ public sealed class CallbackHostRequestHandler
         CallbackService service,
         ICallbackStore store,
         IAgentProviderRegistry providers,
+        IOpenCodeConnectionStore openCodeConnections,
         AppPaths paths,
         HostStopSignal stopSignal)
     {
         _service = service;
         _store = store;
         _providers = providers;
+        _openCodeConnections = openCodeConnections;
         _paths = paths;
         _stopSignal = stopSignal;
     }
@@ -45,6 +49,8 @@ public sealed class CallbackHostRequestHandler
             "host.stop" => StopHost(),
             "provider.status" => HostResponse.Success(
                 await ProviderStatusAsync(request.Payload, cancellationToken)),
+            "provider.connect.opencode" => HostResponse.Success(
+                await ConnectOpenCodeAsync(request.Payload, cancellationToken)),
             "callback.register" => HostResponse.Success(
                 await _service.RegisterAsync(
                     Deserialize<RegisterCallbackRequest>(request.Payload),
@@ -78,6 +84,13 @@ public sealed class CallbackHostRequestHandler
         var request = Deserialize<ProviderStatusRequest>(payload);
         return _providers.GetRequired(request.Provider).GetStatusAsync(cancellationToken);
     }
+
+    private Task<OpenCodeConnectionResult> ConnectOpenCodeAsync(
+        JsonElement payload,
+        CancellationToken cancellationToken) =>
+        _openCodeConnections.UpsertAsync(
+            Deserialize<OpenCodeConnectionRegistration>(payload),
+            cancellationToken);
 
     private HostResponse StopHost()
     {

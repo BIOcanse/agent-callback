@@ -4,7 +4,7 @@ param(
     [string]$RuntimeIdentifier = 'win-x64',
 
     [ValidatePattern('^[0-9A-Za-z.-]+$')]
-    [string]$Version = '0.1.0-alpha.2'
+    [string]$Version = '0.1.0-alpha.3'
 )
 
 Set-StrictMode -Version Latest
@@ -102,7 +102,8 @@ try {
         (Join-Path $projectRoot 'SECURITY.md'),
         (Join-Path $pluginRoot 'skills\agent-callback\SKILL.md'),
         (Join-Path $pluginRoot 'skills\agent-callback\agents\openai.yaml'),
-        (Join-Path $pluginRoot 'skills\agent-callback\references\app-installation.example.json')
+        (Join-Path $pluginRoot 'skills\agent-callback\references\app-installation.example.json'),
+        (Join-Path $pluginRoot 'integrations\opencode\agent-callback.js')
     )) {
         if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
             throw "Release input was not found: $requiredFile"
@@ -144,6 +145,7 @@ try {
     $packageSkill = Join-Path $packageDirectory 'skill\agent-callback'
     New-Item -ItemType Directory -Path (Join-Path $packageSkill 'agents') -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $packageSkill 'references') -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $packageDirectory 'opencode') -Force | Out-Null
     Copy-Item -LiteralPath $executable -Destination (Join-Path $packageDirectory 'agent-callback.exe')
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'install.ps1') -Destination (Join-Path $packageDirectory 'install.ps1')
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'uninstall.ps1') -Destination (Join-Path $packageDirectory 'uninstall.ps1')
@@ -154,6 +156,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $pluginRoot 'skills\agent-callback\SKILL.md') -Destination (Join-Path $packageSkill 'SKILL.md')
     Copy-Item -LiteralPath (Join-Path $pluginRoot 'skills\agent-callback\agents\openai.yaml') -Destination (Join-Path $packageSkill 'agents\openai.yaml')
     Copy-Item -LiteralPath (Join-Path $pluginRoot 'skills\agent-callback\references\app-installation.example.json') -Destination (Join-Path $packageSkill 'references\app-installation.example.json')
+    Copy-Item -LiteralPath (Join-Path $pluginRoot 'integrations\opencode\agent-callback.js') -Destination (Join-Path $packageDirectory 'opencode\agent-callback.js')
 
     $packagedExecutable = Join-Path $packageDirectory 'agent-callback.exe'
     $file = Get-Item -LiteralPath $packagedExecutable

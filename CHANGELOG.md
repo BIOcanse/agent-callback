@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-alpha.3 - 2026-07-20
+
+- Added an experimental OpenCode provider that uses the public loopback server API.
+- Added an owned global OpenCode plugin that registers the current server securely and injects the exact instance/session callback target into shell tools.
+- Protected OpenCode server credentials with Windows DPAPI and kept them out of command-line arguments and logs.
+- Extended install metadata and ownership-checked uninstall to cover the OpenCode plugin.
+- Investigated Claude Code CLI and Desktop transports; documented why neither currently meets the in-place callback contract.
+
 ## 0.1.0-alpha.2 - 2026-07-20
 
 - Removed the Codex Desktop package-version allowlist and all preflight version rejection.
