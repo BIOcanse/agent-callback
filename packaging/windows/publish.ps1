@@ -4,7 +4,7 @@ param(
     [string]$RuntimeIdentifier = 'win-x64',
 
     [ValidatePattern('^[0-9A-Za-z.-]+$')]
-    [string]$Version = '0.1.0-alpha.3'
+    [string]$Version = '0.1.0-alpha.4'
 )
 
 Set-StrictMode -Version Latest
@@ -117,6 +117,7 @@ try {
         'publish',
         $projectFile,
         '--configuration', 'Release',
+        '--framework', 'net10.0-windows',
         '--runtime', $RuntimeIdentifier,
         '--self-contained', 'true',
         '--output', $outputDirectory,

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using System.Text.Json;
 using AgentCallback.Application;
 using AgentCallback.Domain;
@@ -193,12 +194,18 @@ public sealed class McpServer
             cancellationToken);
     }
 
-    private static object InitializeResult() => new
+    private static object InitializeResult()
     {
-        protocolVersion = "2025-06-18",
-        capabilities = new { tools = new { listChanged = false } },
-        serverInfo = new { name = "agent-callback", version = "0.1.0-alpha.3" }
-    };
+        var version = typeof(McpServer).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion ?? "unknown";
+        return new
+        {
+            protocolVersion = "2025-06-18",
+            capabilities = new { tools = new { listChanged = false } },
+            serverInfo = new { name = "agent-callback", version }
+        };
+    }
 
     private static object[] ToolDefinitions() =>
     [

@@ -1,5 +1,6 @@
 using AgentCallback.Application;
 using AgentCallback.Domain;
+using AgentCallback.Infrastructure;
 using AgentCallback.Infrastructure.Storage;
 using AgentCallback.Triggers.Process;
 
@@ -179,7 +180,7 @@ public sealed class CallbackHostWorker : IAsyncDisposable
             !string.Equals(
                 Path.GetFullPath(callback.ProcessExecutablePath),
                 Path.GetFullPath(snapshot.ExecutablePath),
-                StringComparison.OrdinalIgnoreCase))
+                PathSemantics.Comparison))
         {
             return false;
         }
@@ -188,7 +189,7 @@ public sealed class CallbackHostWorker : IAsyncDisposable
             (!string.IsNullOrWhiteSpace(snapshot.CommandLine) &&
              snapshot.CommandLine.Contains(
                  callback.ExpectedCommandLineContains,
-                 StringComparison.OrdinalIgnoreCase));
+                 PathSemantics.Comparison));
     }
 
     private void AttachHandle(CallbackRecord callback)

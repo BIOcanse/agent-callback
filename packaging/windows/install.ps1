@@ -4,7 +4,7 @@ param(
     [string]$SkillDirectory = (Join-Path $env:USERPROFILE '.codex\skills\agent-callback'),
     [string]$OpenCodeSkillDirectory = (Join-Path $env:USERPROFILE '.config\opencode\skills\agent-callback'),
     [string]$OpenCodePluginDirectory = (Join-Path $env:USERPROFILE '.config\opencode\plugins'),
-    [string]$Version = '0.1.0-alpha.3',
+    [string]$Version = '0.1.0-alpha.4',
     [switch]$DoNotStartHost
 )
 

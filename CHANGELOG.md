@@ -2,8 +2,14 @@
 
 ## Unreleased
 
-- Reworked the English README around a plain-language, agent-first quick start, trigger comparison, and explicit process-result caveat.
-- Added an English visual walkthrough showing registration, unattended local work, and one-shot delivery back to the same conversation.
+## 0.1.0-alpha.4 - 2026-07-20
+
+- Added a native self-contained Linux x64 build with shared provider-neutral core behavior.
+- Added Linux `/proc` process identity inspection, XDG state paths, AES-256-GCM secret protection with `0700`/`0600` filesystem boundaries, and a systemd user Host service.
+- Added the experimental Codex CLI shared app-server adapter over a private Unix socket and the `agent-callback codex` launcher; ordinary private Codex TUI sessions remain intentionally unavailable.
+- Extended the OpenCode plugin and loopback provider to Linux and passed a real one-shot delivery into an exact native Linux session.
+- Added ownership-checked Linux install/uninstall scripts, dynamic Skill installation metadata, and a permission-preserving `tar.gz` release package.
+- Reworked the English README around a plain-language quick start and added an English visual walkthrough.
 
 ## 0.1.0-alpha.3 - 2026-07-20
 

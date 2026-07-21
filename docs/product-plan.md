@@ -1,7 +1,7 @@
 # Agent Callback 独立产品方案
 
 日期：2026-07-20
-状态：`0.1.0-alpha.3` 已实现并进入公开发布门禁
+状态：`0.1.0-alpha.4` 已实现并通过 Windows/WSL 发布门禁
 
 ## 结论
 
@@ -310,6 +310,7 @@ products/agent-callback/
   LICENSE
   docs/
     architecture.md
+    linux-support.md
     protocol.md
     security.md
     progress.md
@@ -341,7 +342,7 @@ products/agent-callback/
 
 ### v0.1 alpha
 
-- Windows x64；
+- Windows x64 与 Linux x64（包括启用 systemd 用户会话的 WSL 2）；
 - GitHub 开源发布，采用 Apache-2.0；
 - 自包含 Host/CLI 安装包；
 - 可本地安装的 Codex Plugin + Skill；

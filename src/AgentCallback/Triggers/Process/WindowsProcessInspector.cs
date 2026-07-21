@@ -1,3 +1,4 @@
+#if WINDOWS
 using System.Diagnostics;
 using System.Management;
 
@@ -84,3 +85,4 @@ public sealed class WindowsProcessInspector : IProcessInspector
         return null;
     }
 }
+#endif

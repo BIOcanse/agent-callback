@@ -1,6 +1,6 @@
 using System.Diagnostics;
+using AgentCallback.Infrastructure;
 using AgentCallback.Transport.NamedPipe;
-using Microsoft.Win32;
 
 namespace AgentCallback.Host;
 
@@ -11,15 +11,32 @@ public sealed record HostLifecycleResult(
     int? ProcessId,
     string Command);
 
+public interface IStartupRegistration
+{
+    bool IsEnabled();
+    void Enable(HostLaunchCommand command);
+    void Disable();
+}
+
+public sealed record HostLaunchCommand(
+    string Executable,
+    IReadOnlyList<string> PrefixArguments,
+    string CommandLine);
+
 public sealed class HostLifecycle
 {
-    private const string StartupValueName = "AgentCallback";
-    private const string StartupKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    private readonly AppPaths _paths;
     private readonly HostPipeClient _client;
+    private readonly IStartupRegistration _startup;
 
-    public HostLifecycle(HostPipeClient client)
+    public HostLifecycle(
+        AppPaths paths,
+        HostPipeClient client,
+        IStartupRegistration startup)
     {
+        _paths = paths;
         _client = client;
+        _startup = startup;
     }
 
     public async Task<HostLifecycleResult> StartAsync(CancellationToken cancellationToken)
@@ -31,26 +48,13 @@ public sealed class HostLifecycle
             return Result("start", command, current);
         }
 
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = command.Executable,
-            UseShellExecute = true,
-            WindowStyle = ProcessWindowStyle.Hidden,
-            WorkingDirectory = Environment.CurrentDirectory
-        };
-        foreach (var prefixArgument in command.PrefixArguments)
-        {
-            startInfo.ArgumentList.Add(prefixArgument);
-        }
-
-        startInfo.ArgumentList.Add("host");
-        startInfo.ArgumentList.Add("run");
-        using var process = Process.Start(startInfo) ??
-            throw new InvalidOperationException("Failed to start Agent Callback Host.");
-
+        _paths.EnsureDataDirectory();
+        using var process = StartDetached(command);
         HostStatus? status = null;
-        for (var attempt = 0; attempt < 5 && status is null; attempt++)
+        var attempt = 0;
+        while (attempt < 15 && status is null)
         {
+            attempt++;
             await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken);
             status = await TryGetStatusAsync(cancellationToken);
             if (process.HasExited && status is null)
@@ -73,7 +77,7 @@ public sealed class HostLifecycle
         {
             return new HostLifecycleResult(
                 "stop",
-                IsStartupEnabled(),
+                _startup.IsEnabled(),
                 false,
                 null,
                 command.CommandLine);
@@ -85,28 +89,27 @@ public sealed class HostLifecycle
             cancellationToken);
         return new HostLifecycleResult(
             "stop",
-            IsStartupEnabled(),
+            _startup.IsEnabled(),
             false,
             status.ProcessId,
             command.CommandLine);
     }
 
-    public async Task<HostLifecycleResult> EnableStartupAsync(CancellationToken cancellationToken)
+    public async Task<HostLifecycleResult> EnableStartupAsync(
+        CancellationToken cancellationToken)
     {
         var command = ResolveCurrentCommand();
-        using var key = Registry.CurrentUser.CreateSubKey(StartupKeyPath, writable: true) ??
-            throw new InvalidOperationException("Could not open the current-user startup registry key.");
-        key.SetValue(StartupValueName, command.CommandLine, RegistryValueKind.String);
+        _startup.Enable(command);
         var started = await StartAsync(cancellationToken);
         return started with { Action = "enable-startup", StartupEnabled = true };
     }
 
-    public async Task<HostLifecycleResult> DisableStartupAsync(CancellationToken cancellationToken)
+    public async Task<HostLifecycleResult> DisableStartupAsync(
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var command = ResolveCurrentCommand();
-        using var key = Registry.CurrentUser.OpenSubKey(StartupKeyPath, writable: true);
-        key?.DeleteValue(StartupValueName, throwOnMissingValue: false);
+        _startup.Disable();
         var status = await TryGetStatusAsync(cancellationToken);
         return new HostLifecycleResult(
             "disable-startup",
@@ -123,7 +126,7 @@ public sealed class HostLifecycle
         return status is null
             ? new HostLifecycleResult(
                 "status",
-                IsStartupEnabled(),
+                _startup.IsEnabled(),
                 false,
                 null,
                 command.CommandLine)
@@ -147,29 +150,68 @@ public sealed class HostLifecycle
 
     private HostLifecycleResult Result(
         string action,
-        HostCommand command,
+        HostLaunchCommand command,
         HostStatus status) => new(
         action,
-        IsStartupEnabled(),
+        _startup.IsEnabled(),
         status.Running,
         status.ProcessId,
         command.CommandLine);
 
-    private static bool IsStartupEnabled()
+    private Process StartDetached(HostLaunchCommand command)
     {
-        using var key = Registry.CurrentUser.OpenSubKey(StartupKeyPath, writable: false);
-        return key?.GetValue(StartupValueName) is string value &&
-            !string.IsNullOrWhiteSpace(value);
+        ProcessStartInfo startInfo;
+        if (OperatingSystem.IsWindows())
+        {
+            startInfo = new ProcessStartInfo
+            {
+                FileName = command.Executable,
+                UseShellExecute = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+                WorkingDirectory = _paths.DataDirectory
+            };
+            foreach (var prefixArgument in command.PrefixArguments)
+            {
+                startInfo.ArgumentList.Add(prefixArgument);
+            }
+
+            startInfo.ArgumentList.Add("host");
+            startInfo.ArgumentList.Add("run");
+        }
+        else
+        {
+            startInfo = new ProcessStartInfo
+            {
+                FileName = "/bin/sh",
+                UseShellExecute = false,
+                WorkingDirectory = _paths.DataDirectory
+            };
+            startInfo.ArgumentList.Add("-c");
+            startInfo.ArgumentList.Add(
+                "exec </dev/null >/dev/null 2>&1; executable=\"$1\"; shift; exec \"$executable\" \"$@\"");
+            startInfo.ArgumentList.Add("agent-callback-host-launcher");
+            startInfo.ArgumentList.Add(command.Executable);
+            foreach (var prefixArgument in command.PrefixArguments)
+            {
+                startInfo.ArgumentList.Add(prefixArgument);
+            }
+
+            startInfo.ArgumentList.Add("host");
+            startInfo.ArgumentList.Add("run");
+        }
+
+        return Process.Start(startInfo) ??
+            throw new InvalidOperationException("Failed to start Agent Callback Host.");
     }
 
-    private static HostCommand ResolveCurrentCommand()
+    public static HostLaunchCommand ResolveCurrentCommand()
     {
         var processPath = Environment.ProcessPath ??
             throw new InvalidOperationException("The current executable path is unavailable.");
         var prefixArguments = new List<string>();
         if (string.Equals(
-                Path.GetFileName(processPath),
-                "dotnet.exe",
+                Path.GetFileNameWithoutExtension(processPath),
+                "dotnet",
                 StringComparison.OrdinalIgnoreCase))
         {
             var commandLineArguments = Environment.GetCommandLineArgs();
@@ -188,16 +230,11 @@ public sealed class HostLifecycle
         parts.AddRange(prefixArguments.Select(Quote));
         parts.Add("host");
         parts.Add("run");
-        return new HostCommand(processPath, prefixArguments, string.Join(" ", parts));
+        return new HostLaunchCommand(processPath, prefixArguments, string.Join(" ", parts));
     }
 
     private static string Quote(string value) =>
         $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
-
-    private sealed record HostCommand(
-        string Executable,
-        IReadOnlyList<string> PrefixArguments,
-        string CommandLine);
 
     private sealed record StopHostResult(bool StopRequested);
 }

@@ -6,6 +6,7 @@ using AgentCallback.Domain;
 using AgentCallback.Host;
 using AgentCallback.Infrastructure;
 using AgentCallback.Mcp;
+using AgentCallback.Providers.Codex.AppServer;
 using AgentCallback.Providers.OpenCode;
 using AgentCallback.Transport.NamedPipe;
 
@@ -33,11 +34,12 @@ public sealed class CommandLineApplication
     public CommandLineApplication(
         AppPaths paths,
         HostPipeClient client,
+        HostLifecycle hostLifecycle,
         Func<CancellationToken, Task> runHost)
     {
         _paths = paths;
         _client = client;
-        _hostLifecycle = new HostLifecycle(client);
+        _hostLifecycle = hostLifecycle;
         _runHost = runHost;
     }
 
@@ -54,6 +56,8 @@ public sealed class CommandLineApplication
             var result = args[0].ToLowerInvariant() switch
             {
                 "host" => await RunHostCommandAsync(args[1..], cancellationToken),
+                "codex" => await new CodexSessionLauncher(_hostLifecycle, _client)
+                    .RunAsync(args[1..], cancellationToken),
                 "provider" => await RunProviderCommandAsync(args[1..], cancellationToken),
                 "register" => await RunRegisterCommandAsync(args[1..], cancellationToken),
                 "trigger" => await RunTriggerCommandAsync(args[1..], cancellationToken),
@@ -164,8 +168,33 @@ public sealed class CommandLineApplication
             return 0;
         }
 
+        if (args.Length == 3 &&
+            string.Equals(args[0], "connect", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(args[1], "codex", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(args[2], "--stdin", StringComparison.OrdinalIgnoreCase))
+        {
+            var input = await Console.In.ReadToEndAsync(cancellationToken);
+            if (input.Length > 16 * 1024)
+            {
+                throw new InvalidDataException("Codex connection payload is too large.");
+            }
+
+            var registration = JsonSerializer.Deserialize<CodexAppServerConnectionRegistration>(
+                input,
+                OutputJson) ?? throw new InvalidDataException(
+                "Codex connection payload is invalid.");
+            WriteJson(await _client.CallAsync<
+                CodexAppServerConnectionRegistration,
+                CodexAppServerConnectionResult>(
+                "provider.connect.codex",
+                registration,
+                cancellationToken));
+            return 0;
+        }
+
         throw new InvalidOperationException(
-            "Usage: agent-callback provider status [provider] | provider connect opencode --stdin");
+            "Usage: agent-callback provider status [provider] | " +
+            "provider connect opencode|codex --stdin");
     }
 
     private async Task<int> RunRegisterCommandAsync(
@@ -300,14 +329,15 @@ public sealed class CommandLineApplication
     private void PrintHelp()
     {
         Console.Out.WriteLine($"""
-            Agent Callback v0.1 (Windows, provider transports may be experimental)
+            Agent Callback v0.1 (Windows/Linux, provider transports may be experimental)
 
             Data directory: {_paths.DataDirectory}
 
             Commands:
               agent-callback host run|start|stop|status|enable-startup|disable-startup
+              agent-callback codex [Codex CLI arguments] (Linux shared-session launcher)
               agent-callback provider status [provider]
-              agent-callback provider connect opencode --stdin
+              agent-callback provider connect opencode|codex --stdin
               agent-callback register process --pid <pid> --instruction <text> [--thread <id>]
               agent-callback register event --instruction <text> [--thread <id>]
               agent-callback trigger <id> --secret <secret> [--outcome succeeded|failed|canceled|unknown]

@@ -2,7 +2,7 @@
 
 ## Current State
 
-Provider-neutral `0.1.0-alpha.3` is installed locally and has passed the OpenCode release gate. Codex compatibility still uses direct runtime probing with no package-version rejection.
+Provider-neutral `0.1.0-alpha.4` is released for Windows x64 and Linux x64 and installed on both Windows and WSL 2. Windows Codex Desktop, native Linux Codex app-server, and native Linux OpenCode provider gates have passed; compatibility uses direct capability probing with no package-version rejection.
 
 ## Completed
 
@@ -15,7 +15,7 @@ Provider-neutral `0.1.0-alpha.3` is installed locally and has passed the OpenCod
 - Completed the read-only M0 transport gate and recorded the v0.1 decision in `docs/transport-decision.md`.
 - Implemented the .NET 10 Windows Host, per-user named-pipe protocol, SQLite persistence, DPAPI-protected instructions, process and event sources, dispatch leases, retries, and ambiguous-delivery recovery.
 - Implemented the CLI, thin stdio MCP server, experimental Codex Desktop IPC provider, Plugin manifest, and callback Skill.
-- Maintained 18 passing unit tests covering state transitions, restart recovery, trigger credentials and idempotency, PID identity capture, provider selection, MCP framing, smart-delivery race handling, OpenCode connection protection, target parsing, busy-session retry, and ambiguous prompt handling.
+- Maintained 21 passing unit tests on both Windows and native Linux covering state transitions, restart recovery, trigger credentials and idempotency, PID identity capture, provider selection, MCP framing, smart-delivery race handling, provider connection protection, target parsing, busy-session retry, ambiguous prompt handling, Linux key permissions, and `/proc` identity capture.
 - Replaced the vulnerable SQLite native bundle with `SQLitePCLRaw.bundle_e_sqlite3` 3.0.3 while retaining `Microsoft.Data.Sqlite.Core` 10.0.9.
 - Added and Windows PowerShell 5.1-validated `packaging/windows/publish.ps1`; it emits a self-contained `win-x64` single-file App, ZIP, executable digest, and release-side ZIP digest.
 - Added per-user `host start|stop|status|enable-startup|disable-startup` lifecycle commands; the installer owns App installation and clean uninstallation.
@@ -37,10 +37,16 @@ Provider-neutral `0.1.0-alpha.3` is installed locally and has passed the OpenCod
 - Verified default uninstall removes the App, both Skill copies, the OpenCode plugin, startup value, and uninstall entry while preserving callback data and install ownership; reinstallation restored all assets with the same `installId`.
 - Tested Claude Code CLI `2.1.215` in a disposable session. `--resume` retained the session ID, but the account returned HTTP 403, and the CLI/Desktop ownership model still does not provide in-place callback delivery.
 - Reworked the public README into an agent-first English quick start and added a deterministic English demo graphic under `docs/assets`.
+- Added a portable .NET 10 target, Linux `/proc` process inspector, case-sensitive path semantics, XDG state paths, Unix file-key AES-256-GCM secret protection, portable Host lifecycle, and a systemd user startup adapter.
+- Added a native Linux Codex adapter using the official app-server protocol over a private Unix socket. The `agent-callback codex` launcher starts/probes the shared daemon, verifies the protocol endpoint, and launches the native TUI with an exact connection/thread target.
+- Passed native WSL real-delivery gates for OpenCode event callbacks, Codex idle follow-ups, and process callbacks surviving a Host restart. Each accepted callback used one attempt; both provider markers were independently verified in the exact target conversation.
+- Added ownership-checked Linux install/uninstall, dynamic Skill records, systemd startup, permission-preserving `tar.gz` packaging, default data preservation, explicit data removal, clean reinstall, and ownership-ID recovery from preserved data.
+- Installed the final alpha.4 Windows package locally and revalidated the Host, HKCU startup registration, dynamic Skill metadata, and Codex Desktop IPC probe.
+- Published prerelease `v0.1.0-alpha.4` with self-contained Windows x64 and Linux x64 archives, SHA-256 sidecars, permission-preserving Linux packaging, and remotely verified release assets.
 
 ## Follow-up
 
-1. Add signing and broader provider/version compatibility in later releases.
+1. Add signing, Linux ARM64, and broader provider compatibility in later releases.
 2. Re-test per-user login startup in a disposable Windows user profile before promoting beyond alpha.
 
 ## Decisions
@@ -53,10 +59,12 @@ Provider-neutral `0.1.0-alpha.3` is installed locally and has passed the OpenCod
 - The project license is Apache-2.0.
 - V0.1 selects the experimental Codex Desktop IPC adapter on Windows; a separate public app-server process is not a write fallback for Desktop-owned conversations.
 - Provider compatibility is determined by the current IPC probe and operation result, not by a package-version allowlist. Users may run the probe or an explicit test callback after an update.
+- On Linux, Codex callbacks require an exact shared app-server connection launched with `agent-callback codex`; private in-process TUI sessions are never guessed from recent transcripts.
+- Linux state is per-user under XDG state storage, startup is a systemd user unit, and normal uninstall preserves callback history unless explicit ownership-checked removal is requested.
 
 ## Blockers
 
-- No implementation blocker.
-- OpenCode support is complete for the alpha.3 scope: an owned global plugin discovers the exact instance/session and a provider adapter uses the public loopback HTTP API.
+- No implementation blocker for alpha.4.
+- OpenCode support is complete on Windows and Linux for the alpha scope: an owned global plugin discovers the exact instance/session and a provider adapter uses the public loopback HTTP API.
 - Claude Code was investigated separately. Its CLI resume path is a second headless conversation owner and Claude Desktop history is separate, so it is not advertised as a callback provider.
 - Code signing remains outside the alpha release boundary.

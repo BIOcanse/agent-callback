@@ -3,6 +3,7 @@ using AgentCallback.Application;
 using AgentCallback.Domain;
 using AgentCallback.Infrastructure;
 using AgentCallback.Infrastructure.Storage;
+using AgentCallback.Providers.Codex.AppServer;
 using AgentCallback.Providers.OpenCode;
 using AgentCallback.Transport.NamedPipe;
 
@@ -14,6 +15,7 @@ public sealed class CallbackHostRequestHandler
     private readonly ICallbackStore _store;
     private readonly IAgentProviderRegistry _providers;
     private readonly IOpenCodeConnectionStore _openCodeConnections;
+    private readonly ICodexAppServerConnectionStore? _codexConnections;
     private readonly AppPaths _paths;
     private readonly HostStopSignal _stopSignal;
     private readonly DateTimeOffset _startedUtc = DateTimeOffset.UtcNow;
@@ -23,6 +25,7 @@ public sealed class CallbackHostRequestHandler
         ICallbackStore store,
         IAgentProviderRegistry providers,
         IOpenCodeConnectionStore openCodeConnections,
+        ICodexAppServerConnectionStore? codexConnections,
         AppPaths paths,
         HostStopSignal stopSignal)
     {
@@ -30,6 +33,7 @@ public sealed class CallbackHostRequestHandler
         _store = store;
         _providers = providers;
         _openCodeConnections = openCodeConnections;
+        _codexConnections = codexConnections;
         _paths = paths;
         _stopSignal = stopSignal;
     }
@@ -51,6 +55,8 @@ public sealed class CallbackHostRequestHandler
                 await ProviderStatusAsync(request.Payload, cancellationToken)),
             "provider.connect.opencode" => HostResponse.Success(
                 await ConnectOpenCodeAsync(request.Payload, cancellationToken)),
+            "provider.connect.codex" => HostResponse.Success(
+                await ConnectCodexAsync(request.Payload, cancellationToken)),
             "callback.register" => HostResponse.Success(
                 await _service.RegisterAsync(
                     Deserialize<RegisterCallbackRequest>(request.Payload),
@@ -91,6 +97,21 @@ public sealed class CallbackHostRequestHandler
         _openCodeConnections.UpsertAsync(
             Deserialize<OpenCodeConnectionRegistration>(payload),
             cancellationToken);
+
+    private Task<CodexAppServerConnectionResult> ConnectCodexAsync(
+        JsonElement payload,
+        CancellationToken cancellationToken)
+    {
+        if (_codexConnections is null)
+        {
+            throw new PlatformNotSupportedException(
+                "Codex app-server connection registration is available only on Linux.");
+        }
+
+        return _codexConnections.UpsertAsync(
+            Deserialize<CodexAppServerConnectionRegistration>(payload),
+            cancellationToken);
+    }
 
     private HostResponse StopHost()
     {

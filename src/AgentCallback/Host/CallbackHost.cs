@@ -30,7 +30,7 @@ public sealed class CallbackHost
     {
         using var mutex = new Mutex(
             initiallyOwned: true,
-            $"Local\\{_paths.PipeName}-host",
+            _paths.HostMutexName,
             out var ownsMutex);
         if (!ownsMutex)
         {

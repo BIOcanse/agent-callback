@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using AgentCallback.Domain;
+using AgentCallback.Infrastructure;
 using AgentCallback.Infrastructure.Storage;
 using AgentCallback.Triggers.Process;
 
@@ -57,7 +58,7 @@ public sealed class CallbackService
                 throw new InvalidOperationException($"Process {request.ProcessId.Value} is not running.");
             if (!string.IsNullOrWhiteSpace(expectedCommandLine) &&
                 (string.IsNullOrWhiteSpace(process.CommandLine) ||
-                 !process.CommandLine.Contains(expectedCommandLine, StringComparison.OrdinalIgnoreCase)))
+                 !process.CommandLine.Contains(expectedCommandLine, PathSemantics.Comparison)))
             {
                 throw new InvalidOperationException(
                     $"Process {request.ProcessId.Value} command line does not contain the expected marker.");
@@ -227,7 +228,7 @@ public sealed class CallbackService
         }
 
         var summary = OptionalTrimmed(request.Summary, CallbackDefaults.MaxSummaryCharacters);
-        var allowed = new HashSet<string>(callback.EvidencePaths, StringComparer.OrdinalIgnoreCase);
+        var allowed = new HashSet<string>(callback.EvidencePaths, PathSemantics.Comparer);
         var reportedEvidence = NormalizeEvidencePaths(request.EvidenceRefs);
         if (reportedEvidence.Any(path => !allowed.Contains(path)))
         {
@@ -280,7 +281,7 @@ public sealed class CallbackService
         return values
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(Path.GetFullPath)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Distinct(PathSemantics.Comparer)
             .ToArray();
     }
 
