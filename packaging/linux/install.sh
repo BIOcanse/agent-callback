@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-version="${AGENT_CALLBACK_VERSION:-0.1.0-alpha.4}"
+version="${AGENT_CALLBACK_VERSION:-0.1.0-alpha.5}"
 start_host=1
 if [[ "${1:-}" == "--do-not-start-host" ]]; then
   start_host=0

@@ -193,7 +193,7 @@ internal sealed class CodexDesktopIpcInvoker
 
     private static int MethodVersion(string method) => method switch
     {
-        "thread-follower-start-turn" => 1,
+        "thread-follower-start-turn" => 2,
         "thread-follower-steer-turn" => 1,
         _ => 0
     };

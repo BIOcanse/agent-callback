@@ -50,11 +50,13 @@ Both triggers are durable across Host restarts and deliver at most one stored co
 
 | Provider | Status | Delivery behavior |
 | --- | --- | --- |
-| **Codex Desktop on Windows** | Experimental | Steers an active turn or starts an idle follow-up in the registered task. |
+| **Codex Desktop on Windows** | Experimental | Steers an active turn or starts an idle follow-up in the registered task. If no Codex window currently holds the task, opens it once and retries (see below). |
 | **Codex CLI on Linux** | Experimental | Uses the official shared app-server Unix socket to steer or start a turn in the exact thread. Launch the session with `agent-callback codex`. |
 | **OpenCode on Windows/Linux** | Experimental | Uses an owned plugin to identify the exact OpenCode instance and session, then posts an idle follow-up through OpenCode's public loopback API. |
 
 The Codex adapters do not use a package-version allowlist. They probe the current endpoint and operation directly. On Linux, a normally launched private TUI is intentionally unavailable because an external process cannot safely steer its in-process owner. `agent-callback codex` starts/probes Codex's shared app-server and launches `codex --remote unix://` with an exact connection target.
+
+Codex Desktop accepts a callback only from a window that currently holds the task. When delivery is rejected because no window holds it (`no-client-found`), the Host opens `codex://threads/<id>` once, waits five seconds, and retries the same delivery once. Opening the link sends nothing to the conversation, but Codex Desktop switches to that task. Set the user environment variable `AGENT_CALLBACK_CODEX_OWNER_RELOCATION=off` and restart the Host to keep Codex where it is; an idle task then has to be open in Codex for delivery.
 
 The OpenCode plugin accepts only loopback server origins and sends its password to the Host over stdin. The Host protects it with current-user DPAPI on Windows or AES-256-GCM under a private per-user key on Linux. Restart OpenCode after installation, then run `agent-callback provider status opencode`.
 
@@ -64,9 +66,9 @@ Additional agents can be added behind the narrow `IAgentProvider` boundary. Call
 
 ## Install on Windows
 
-The `0.1.0-alpha.4` release includes Windows x64 and Linux x64 packages.
+The `0.1.0-alpha.5` release includes Windows x64 and Linux x64 packages.
 
-1. Download `agent-callback-0.1.0-alpha.4-win-x64.zip` and its `.sha256` sidecar from [GitHub Releases](https://github.com/BIOcanse/agent-callback/releases).
+1. Download `agent-callback-0.1.0-alpha.5-win-x64.zip` and its `.sha256` sidecar from [GitHub Releases](https://github.com/BIOcanse/agent-callback/releases).
 2. Verify the archive checksum and extract the ZIP.
 3. Run:
 
@@ -90,12 +92,12 @@ Restart Codex so it discovers the Skill, and restart OpenCode so it loads the pl
 
 ## Install on Linux
 
-Download `agent-callback-0.1.0-alpha.4-linux-x64.tar.gz` and its `.sha256` sidecar, verify it, and run:
+Download `agent-callback-0.1.0-alpha.5-linux-x64.tar.gz` and its `.sha256` sidecar, verify it, and run:
 
 ```bash
-sha256sum --check agent-callback-0.1.0-alpha.4-linux-x64.tar.gz.sha256
-tar -xzf agent-callback-0.1.0-alpha.4-linux-x64.tar.gz
-cd agent-callback-0.1.0-alpha.4-linux-x64
+sha256sum --check agent-callback-0.1.0-alpha.5-linux-x64.tar.gz.sha256
+tar -xzf agent-callback-0.1.0-alpha.5-linux-x64.tar.gz
+cd agent-callback-0.1.0-alpha.5-linux-x64
 bash install.sh
 ```
 
@@ -136,6 +138,7 @@ The Linux equivalent is:
 - Event callbacks require a per-callback secret and accept only bounded result metadata.
 - A possible-write timeout is terminally ambiguous and is not automatically retried through another path.
 - Continuation instructions are protected with current-user DPAPI on Windows or AES-256-GCM plus a private per-user file key on Linux.
+- Opening a Codex task link before one retry is the only visible action, and it can be turned off; there is no input simulation.
 - No arbitrary send-message API, scheduler, recurring jobs, agent teams, UI automation, transcript mutation, or public TCP listener.
 
 ## CLI reference

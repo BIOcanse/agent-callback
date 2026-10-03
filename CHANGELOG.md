@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.5 - 2026-10-03
+
+- Fixed Codex Desktop delivery to idle threads: `thread-follower-start-turn` now uses version 2 with the `turnStart.request` envelope and inherited thread settings. Codex Desktop 26.901 and later require this version for starting a turn; the version-1 `turnStartParams` envelope could not start a follow-up in an idle thread. Steering an active turn was unaffected.
+- Added Codex Desktop owner relocation: when delivery is rejected because no Codex window holds the task, the Host opens `codex://threads/<id>`, waits five seconds, and retries once. Relocation and its retry are serialized, nothing is written by the relocation itself, and `AGENT_CALLBACK_CODEX_OWNER_RELOCATION=off` turns it off.
+
 ## 0.1.0-alpha.4 - 2026-07-20
 
 - Added a native self-contained Linux x64 build with shared provider-neutral core behavior.

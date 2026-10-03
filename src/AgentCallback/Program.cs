@@ -45,6 +45,7 @@ public static class Program
         ICallbackStore store = new SqliteCallbackStore(paths, secretProtector);
         ICodexAppServerConnectionStore? codexConnections = null;
         ICodexConversationTransport transport;
+        ICodexOwnerRelocator? ownerRelocator = null;
         if (OperatingSystem.IsLinux())
         {
             codexConnections = new CodexAppServerConnectionStore(paths);
@@ -54,13 +55,22 @@ public static class Program
         {
 #if WINDOWS
             transport = new CodexDesktopConversationTransport();
+            // Owner relocation is on by default and visible (Codex Desktop shows the target
+            // conversation); AGENT_CALLBACK_CODEX_OWNER_RELOCATION=off turns it off.
+            if (!string.Equals(
+                    Environment.GetEnvironmentVariable("AGENT_CALLBACK_CODEX_OWNER_RELOCATION"),
+                    "off",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                ownerRelocator = new CodexDesktopOwnerRelocator(TimeSpan.FromSeconds(5));
+            }
 #else
             throw new PlatformNotSupportedException(
                 "This build does not include the Windows Codex Desktop transport.");
 #endif
         }
 
-        var codexProvider = new CodexSmartProvider(transport);
+        var codexProvider = new CodexSmartProvider(transport, ownerRelocator);
         var openCodeConnections = new OpenCodeConnectionStore(paths, secretProtector);
         var openCodeProvider = new OpenCodeProvider(
             openCodeConnections,

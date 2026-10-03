@@ -65,9 +65,73 @@ public sealed class CodexSmartProviderTests
         Assert.Equal(1, transport.StartCalls);
     }
 
-    private static async Task<CallbackDeliveryResult> DeliverAsync(FakeCodexTransport transport)
+    [Fact]
+    public async Task MissingOwner_RelocatesAndRetriesOnce()
     {
-        var provider = new CodexSmartProvider(transport);
+        var transport = new FakeCodexTransport
+        {
+            SteerResults = [Rejected("no-client-found"), Rejected("No active turn")],
+            StartResults = [Accepted()]
+        };
+        var relocator = new FakeOwnerRelocator(succeeds: true);
+        var result = await DeliverAsync(transport, relocator);
+
+        Assert.Equal(DeliveryOutcomeKind.Accepted, result.Kind);
+        Assert.False(result.AttachedToExisting);
+        Assert.Equal(1, relocator.Calls);
+        Assert.Equal(2, transport.SteerCalls);
+        Assert.Equal(1, transport.StartCalls);
+    }
+
+    [Fact]
+    public async Task MissingOwner_StaysRetryableWhenRelocationFails()
+    {
+        var transport = new FakeCodexTransport
+        {
+            SteerResults = [Rejected("no-client-found")]
+        };
+        var relocator = new FakeOwnerRelocator(succeeds: false);
+        var result = await DeliverAsync(transport, relocator);
+
+        Assert.Equal(DeliveryOutcomeKind.Retryable, result.Kind);
+        Assert.Equal(1, relocator.Calls);
+        Assert.Equal(1, transport.SteerCalls);
+    }
+
+    [Fact]
+    public async Task MissingOwner_RetriesOnlyOnce()
+    {
+        var transport = new FakeCodexTransport
+        {
+            SteerResults = [Rejected("no-client-found"), Rejected("no-client-found")]
+        };
+        var relocator = new FakeOwnerRelocator(succeeds: true);
+        var result = await DeliverAsync(transport, relocator);
+
+        Assert.Equal(DeliveryOutcomeKind.Retryable, result.Kind);
+        Assert.Equal(1, relocator.Calls);
+        Assert.Equal(2, transport.SteerCalls);
+    }
+
+    [Fact]
+    public async Task OtherFailures_DoNotRelocate()
+    {
+        var transport = new FakeCodexTransport
+        {
+            SteerResults = [Rejected("response timed out", uncertain: true)]
+        };
+        var relocator = new FakeOwnerRelocator(succeeds: true);
+        var result = await DeliverAsync(transport, relocator);
+
+        Assert.Equal(DeliveryOutcomeKind.Ambiguous, result.Kind);
+        Assert.Equal(0, relocator.Calls);
+    }
+
+    private static async Task<CallbackDeliveryResult> DeliverAsync(
+        FakeCodexTransport transport,
+        ICodexOwnerRelocator? relocator = null)
+    {
+        var provider = new CodexSmartProvider(transport, relocator);
         return await provider.DeliverAsync(
             CallbackTestData.Event(CallbackState.Ready),
             "callback envelope",
@@ -108,5 +172,16 @@ public sealed class CodexSmartProviderTests
             string clientMessageId,
             CancellationToken cancellationToken) =>
             Task.FromResult(SteerResults[_steerIndex++]);
+    }
+
+    private sealed class FakeOwnerRelocator(bool succeeds) : ICodexOwnerRelocator
+    {
+        public int Calls { get; private set; }
+
+        public Task<bool> RelocateAsync(string threadId, CancellationToken cancellationToken)
+        {
+            Calls++;
+            return Task.FromResult(succeeds);
+        }
     }
 }

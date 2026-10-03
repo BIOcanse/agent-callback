@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "installId": "generated-during-install",
   "displayName": "Agent Callback",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "platform": "windows-x64",
   "executablePath": "C:\\Users\\you\\AppData\\Local\\Programs\\AgentCallback\\agent-callback.exe",
   "installDirectory": "C:\\Users\\you\\AppData\\Local\\Programs\\AgentCallback",

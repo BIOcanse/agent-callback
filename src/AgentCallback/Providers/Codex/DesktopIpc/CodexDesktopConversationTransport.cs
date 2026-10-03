@@ -26,14 +26,24 @@ public sealed class CodexDesktopConversationTransport : ICodexConversationTransp
         string clientMessageId,
         CancellationToken cancellationToken)
     {
+        // start-turn version 2 (Codex Desktop 26.901 and later): the request is wrapped in
+        // turnStart.request and the thread keeps its own settings. A version-1 envelope is
+        // rejected by the router as no-client-found, so idle threads were never reached.
         var parameters = new Dictionary<string, object?>
         {
             ["conversationId"] = threadId,
-            ["turnStartParams"] = new Dictionary<string, object?>
+            ["turnStart"] = new Dictionary<string, object?>
             {
-                ["clientUserMessageId"] = clientMessageId,
-                ["input"] = BuildTextInput(message),
-                ["serviceTier"] = null
+                ["request"] = new Dictionary<string, object?>
+                {
+                    ["threadId"] = threadId,
+                    ["clientUserMessageId"] = clientMessageId,
+                    ["input"] = BuildTextInput(message)
+                },
+                ["context"] = new Dictionary<string, object?>
+                {
+                    ["inheritThreadSettings"] = true
+                }
             }
         };
         return InvokeDeliveryAsync(

@@ -18,6 +18,12 @@ public static class CodexDeliveryClassifier
         "turn already in progress",
         "conversation is being streamed");
 
+    /// <summary>No Codex window currently owns the conversation (a deterministic, unwritten rejection).</summary>
+    public static bool IsOwnerMissing(string? error) => ContainsAny(
+        error,
+        "no-client-found",
+        "client-disconnected");
+
     public static bool IsRetryableOwnerUnavailable(string? error) => ContainsAny(
         error,
         "no-client-found",

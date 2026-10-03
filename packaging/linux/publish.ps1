@@ -4,7 +4,7 @@ param(
     [string]$RuntimeIdentifier = 'linux-x64',
 
     [ValidatePattern('^[0-9A-Za-z.-]+$')]
-    [string]$Version = '0.1.0-alpha.4'
+    [string]$Version = '0.1.0-alpha.5'
 )
 
 Set-StrictMode -Version Latest

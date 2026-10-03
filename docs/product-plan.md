@@ -1,7 +1,7 @@
 # Agent Callback 独立产品方案
 
 日期：2026-07-20
-状态：`0.1.0-alpha.4` 已实现并通过 Windows/WSL 发布门禁
+状态：`0.1.0-alpha.5` 已实现（alpha.4 已通过 Windows/WSL 发布门禁；alpha.5 修复空闲线程投递并加入所有者窗口重定位）
 
 ## 结论
 

@@ -2,7 +2,7 @@
 
 ## Current State
 
-Provider-neutral `0.1.0-alpha.4` is released for Windows x64 and Linux x64 and installed on both Windows and WSL 2. Windows Codex Desktop, native Linux Codex app-server, and native Linux OpenCode provider gates have passed; compatibility uses direct capability probing with no package-version rejection.
+Provider-neutral `0.1.0-alpha.4` is released (superseded by `0.1.0-alpha.5`, 2026-10-03) for Windows x64 and Linux x64 and installed on both Windows and WSL 2. Windows Codex Desktop, native Linux Codex app-server, and native Linux OpenCode provider gates have passed; compatibility uses direct capability probing with no package-version rejection.
 
 ## Completed
 
@@ -44,10 +44,14 @@ Provider-neutral `0.1.0-alpha.4` is released for Windows x64 and Linux x64 and i
 - Installed the final alpha.4 Windows package locally and revalidated the Host, HKCU startup registration, dynamic Skill metadata, and Codex Desktop IPC probe.
 - Published prerelease `v0.1.0-alpha.4` with self-contained Windows x64 and Linux x64 archives, SHA-256 sidecars, permission-preserving Linux packaging, and remotely verified release assets.
 
+- 2026-10-02 `0.1.0-alpha.5` (local Windows build and install): idle Codex threads were never reached. Two causes, both shown by an event callback that retried 412 times with `no-client-found`: (1) `thread-follower-start-turn` still used version 1 with `turnStartParams`, which Codex Desktop 26.901+ rejects; it now uses version 2 with `turnStart.request` and `inheritThreadSettings`, the same envelope Codex Thread Automation adopted in its 2026-09-06 repair; (2) no Desktop renderer owned the idle thread. Opening `codex://threads/<id>` let Desktop load it, and the next retry was accepted as a new turn (`attachedToExisting: false`). Active-thread steering was unaffected, which is why callbacks registered by a running Codex turn kept working.
+- 2026-10-03 owner relocation (user approved): on `no-client-found`/`client-disconnected` the Codex provider opens `codex://threads/<id>`, waits five seconds and retries the delivery once, serialized; off with `AGENT_CALLBACK_CODEX_OWNER_RELOCATION=off`. 25 tests pass; both target frameworks build. Published as `v0.1.0-alpha.5`.
+
 ## Follow-up
 
 1. Add signing, Linux ARM64, and broader provider compatibility in later releases.
 2. Re-test per-user login startup in a disposable Windows user profile before promoting beyond alpha.
+3. Re-check owner relocation after Codex Desktop updates: it depends on the `codex://threads/<id>` link and on the window registering as owner within five seconds.
 
 ## Decisions
 
